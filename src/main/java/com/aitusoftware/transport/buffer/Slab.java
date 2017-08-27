@@ -44,12 +44,31 @@ public final class Slab {
         intArrayView.setRelease(backingStore, offset, value);
     }
 
-    public void copy(final int offset, final ByteBuffer src) {
+    public void copy(final int offset, final ByteBuffer source) {
         final int startPosition = backingStore.position();
-        backingStore.position(offset).put(src).position(startPosition);
+        backingStore.position(offset).put(source).position(startPosition);
+    }
+
+    public void copyInto(final int offset, final ByteBuffer destination) {
+        final int startPosition = backingStore.position();
+        final int startLimit = backingStore.limit();
+        backingStore.position(offset);
+        backingStore.limit(offset + destination.remaining());
+        destination.put(backingStore);
+        backingStore.position(startPosition).limit(startLimit);
+        destination.flip();
     }
 
     public int capacity() {
         return backingStore.capacity();
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder buffer = new StringBuilder();
+        for (int i = 0; i < 32; i++) {
+            buffer.append(Long.toHexString(backingStore.getLong(i * 8))).append(' ');
+        }
+        return buffer.toString();
     }
 }

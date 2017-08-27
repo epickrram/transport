@@ -13,7 +13,7 @@ public final class PageHeader {
     }
 
     void updateMaxPosition(final long position) {
-        final int positionRecordSlot = (int) (position & NUMBER_OF_POSITION_RECORDS);
+        final int positionRecordSlot = (int) (position & (NUMBER_OF_POSITION_RECORDS - 1));
         final int recordOffset = getRecordOffset(positionRecordSlot);
         long currentPosition;
         while ((currentPosition = slab.getLongVolatile(recordOffset)) < position) {
