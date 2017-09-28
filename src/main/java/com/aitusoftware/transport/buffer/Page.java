@@ -16,21 +16,27 @@ public final class Page {
         pageHeader = new PageHeader(slab);
     }
 
-    public void write(final ByteBuffer data) {
+    public WriteResult write(final ByteBuffer data) {
         final int remaining = data.remaining();
         if (remaining > MAX_DATA_LENGTH) {
-            throw new IllegalArgumentException(String.format("Record size cannot exceed %db",
-                    MAX_DATA_LENGTH));
+            return WriteResult.MESSAGE_TOO_LARGE;
         }
         while (true) {
             final long position = pageHeader.nextAvailablePosition();
+            if (position + remaining > availableDataLength()) {
+                return WriteResult.NOT_ENOUGH_SPACE;
+            }
             if (claimPosition(position)) {
                 slab.copy(toPageOffset(position) + Record.HEADER_LENGTH, data);
                 slab.writeOrderedInt(toPageOffset(position), READY_MARKER | remaining);
                 pageHeader.updateMaxPosition(position + remaining + Record.HEADER_LENGTH);
-                break;
+                return WriteResult.SUCCESS;
             }
         }
+    }
+
+    private long availableDataLength() {
+        return slab.capacity() - PageHeader.HEADER_SIZE;
     }
 
     public void read(final long position, final ByteBuffer buffer) {

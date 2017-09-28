@@ -36,6 +36,18 @@ public final class PageTest {
         }
     }
 
+    // TODO assert behaviour -> on end of page, writer should add next page marker, then try to claim from the next page
+
+
+
+    @Test
+    public void shouldIndicateThatPageFreeSpaceIsExhausted() throws Exception {
+        final ByteBuffer data = ByteBuffer.allocate(5000);
+        assertThat(page.write(data), is(WriteResult.SUCCESS));
+        data.clear();
+        assertThat(page.write(data), is(WriteResult.NOT_ENOUGH_SPACE));
+    }
+
     private static long decode(final ByteBuffer source) {
         return source.getLong();
     }
