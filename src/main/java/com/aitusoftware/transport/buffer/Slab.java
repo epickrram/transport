@@ -12,6 +12,7 @@ public final class Slab {
 
     public Slab(final ByteBuffer backingStore) {
         this.backingStore = backingStore;
+        // TODO should be static final
         longArrayView = MethodHandles.byteBufferViewVarHandle(long[].class, ByteOrder.nativeOrder());
         intArrayView = MethodHandles.byteBufferViewVarHandle(int[].class, ByteOrder.nativeOrder());
     }

@@ -23,6 +23,7 @@ public final class Page {
         }
         while (true) {
             final long position = pageHeader.nextAvailablePosition();
+
             if (position + remaining > availableDataLength()) {
                 return WriteResult.NOT_ENOUGH_SPACE;
             }
@@ -61,5 +62,14 @@ public final class Page {
 
     private boolean claimPosition(final long position) {
         return slab.compareAndSetInt(toPageOffset(position), 0, CLAIMED_MARKER);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "Page{" +
+                "slab=" + slab +
+                ", pageHeader=" + pageHeader +
+                '}';
     }
 }
