@@ -9,6 +9,8 @@
 
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
+apply plugin: 'checkstyle'
+
 
 // In this section you declare where to find the dependencies of your project
 repositories {
@@ -19,6 +21,11 @@ repositories {
 
 sourceCompatibility = 1.9
 targetCompatibility = 1.9
+
+checkstyle {
+    toolVersion = "6.3"
+}
+
 
 // In this section you declare the dependencies for your production and test code
 dependencies {
