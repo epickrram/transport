@@ -1,6 +1,5 @@
 package com.aitusoftware.transport.buffer;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -10,9 +9,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public final class PageTest {
-    private final Page page = new Page(SLAB_FACTORY.createSlab(8192));
+    private final Page page = new Page(SLAB_FACTORY.createSlab(8192), 0);
 
-    @Ignore("does not respect aligned writes")
     @Test
     public void shouldPutAndRetrieveRecord() throws Exception {
         final ByteBuffer buffer = ByteBuffer.allocate(8);
@@ -35,6 +33,7 @@ public final class PageTest {
             assertThat(decode(buffer), is(i));
 
             position += recordLength + Record.HEADER_LENGTH;
+            position = PageHeader.getAlignedPosition(position);
         }
     }
 

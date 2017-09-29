@@ -10,22 +10,21 @@ public final class PageHeader {
 
     private final Slab slab;
 
-    public PageHeader(final Slab slab) {
+    public PageHeader(final Slab slab, final int pageNumber) {
         this.slab = slab;
     }
 
-    void updateMaxPosition(final long position) {
-
-        long alignedPosition = getAlignedPosition(position);
-        final int positionRecordSlot = (int) (alignedPosition & (NUMBER_OF_POSITION_RECORDS - 1));
+    void updateMaxPosition(final long position)
+    {
+        final int positionRecordSlot = (int) (position & (NUMBER_OF_POSITION_RECORDS - 1));
         final int recordOffset = getRecordOffset(positionRecordSlot);
         long currentPosition;
-        while ((currentPosition = slab.getLongVolatile(recordOffset)) < alignedPosition) {
-            slab.compareAndSetLong(recordOffset, currentPosition, alignedPosition);
+        while ((currentPosition = slab.getLongVolatile(recordOffset)) < position) {
+            slab.compareAndSetLong(recordOffset, currentPosition, position);
         }
     }
 
-    private static long getAlignedPosition(final long position)
+    public static long getAlignedPosition(final long position)
     {
         long alignedPosition = position;
         if ((position & CACHE_LINE_MASK) != 0L)
@@ -35,13 +34,14 @@ public final class PageHeader {
         return alignedPosition;
     }
 
-    long nextAvailablePosition() {
+    long nextAvailablePosition()
+    {
         long maxPosition = 0;
         for (int i = 0; i < NUMBER_OF_POSITION_RECORDS; i++) {
             maxPosition = Math.max(slab.getLongVolatile(getRecordOffset(i)), maxPosition);
         }
 
-        return maxPosition;
+        return getAlignedPosition(maxPosition);
     }
 
     @Override
@@ -52,7 +52,7 @@ public final class PageHeader {
         buffer.append('\n');
         for (int i = 0; i < NUMBER_OF_POSITION_RECORDS; i++)
         {
-            buffer.append(i).append(slab.getLongVolatile(getRecordOffset(i))).append('\n');
+            buffer.append(i).append(": ").append(slab.getLongVolatile(getRecordOffset(i))).append('\n');
         }
 
         return buffer.toString();

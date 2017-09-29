@@ -7,8 +7,11 @@ import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
-public final class PageCache {
+public final class PageCache
+{
     private static final VarHandle CURRENT_PAGE_VH;
+    private static final VarHandle CURRENT_PAGE_NUMBER_VH;
+    private static final int INITIAL_PAGE_NUMBER = 0;
 
     static
     {
@@ -16,6 +19,8 @@ public final class PageCache {
         {
             CURRENT_PAGE_VH = MethodHandles.lookup().
                     findVarHandle(PageCache.class, "currentPage", Page.class);
+            CURRENT_PAGE_NUMBER_VH = MethodHandles.lookup().
+                    findVarHandle(PageCache.class, "currentPageNumber", int.class);
         }
         catch (NoSuchFieldException | IllegalAccessException e)
         {
@@ -26,15 +31,19 @@ public final class PageCache {
 
     private final int pageSize;
     private volatile Page currentPage;
+    private volatile int currentPageNumber;
 
-    public PageCache(final int pageSize)
+    PageCache(final int pageSize)
     {
+        // TODO should handle initialisation from existing file-system resources
         this.pageSize = pageSize;
-        CURRENT_PAGE_VH.setRelease(this, new Page(SlabFactory.SLAB_FACTORY.createSlab(pageSize)));
+        CURRENT_PAGE_VH.setRelease(this, new Page(SlabFactory.SLAB_FACTORY.createSlab(pageSize + PageHeader.HEADER_SIZE), INITIAL_PAGE_NUMBER));
+        CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
     }
 
     // contain page-cache header
-    void append(final ByteBuffer source) {
+    void append(final ByteBuffer source)
+    {
         final Page page = (Page) CURRENT_PAGE_VH.getVolatile(this);
         try
         {
@@ -50,7 +59,7 @@ public final class PageCache {
                     throw new RuntimeException(String.format(
                             "Message too large for current page: %s", currentPage));
                 case NOT_ENOUGH_SPACE:
-                    handleOverflow(source);
+                    handleOverflow(source, page);
             }
         }
         catch (RuntimeException e)
@@ -63,12 +72,35 @@ public final class PageCache {
 
     long estimateTotalLength()
     {
-        return 0L;
+        final Page page = (Page) CURRENT_PAGE_VH.get(this);
+        return page.getPageNumber() * page.totalDataSize() +
+                page.nextAvailablePosition();
     }
 
-    private void handleOverflow(final ByteBuffer message)
+    private void handleOverflow(final ByteBuffer message, final Page page)
     {
-        throw new UnsupportedOperationException();
+        final int pageNumber = page.getPageNumber();
+        while (!Thread.currentThread().isInterrupted())
+        {
+            if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) == pageNumber + 1 &&
+                    ((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1)
+            {
+                // another write has won, and will allocate a new page
+                while ((((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1))
+                {
+                    Thread.yield();
+                }
+                break;
+            }
+            if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
+            {
+                // this thread won, allocate a new page
+                CURRENT_PAGE_VH.setRelease(this, new Page(SlabFactory.SLAB_FACTORY.createSlab(pageSize + PageHeader.HEADER_SIZE), pageNumber + 1));
+                break;
+            }
+        }
+
+        append(message);
     }
 
     static PageCache create(final Path path, final int pageSize)

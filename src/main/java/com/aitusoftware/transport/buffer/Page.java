@@ -10,10 +10,12 @@ public final class Page {
 
     private final Slab slab;
     private final PageHeader pageHeader;
+    private final int pageNumber;
 
-    public Page(final Slab slab) {
+    Page(final Slab slab, final int pageNumber) {
         this.slab = slab;
-        pageHeader = new PageHeader(slab);
+        pageHeader = new PageHeader(slab, pageNumber);
+        this.pageNumber = pageNumber;
     }
 
     public WriteResult write(final ByteBuffer data) {
@@ -36,16 +38,26 @@ public final class Page {
         }
     }
 
-    private long availableDataLength() {
-        return slab.capacity() - PageHeader.HEADER_SIZE;
-    }
-
     public void read(final long position, final ByteBuffer buffer) {
         slab.copyInto(toPageOffset(position) + Record.HEADER_LENGTH, buffer);
     }
 
     int header(final long position) {
         return slab.getIntVolatile(toPageOffset(position));
+    }
+
+    int totalDataSize()
+    {
+        return slab.capacity() - PageHeader.HEADER_SIZE;
+    }
+
+    long nextAvailablePosition()
+    {
+        return pageHeader.nextAvailablePosition();
+    }
+
+    private long availableDataLength() {
+        return slab.capacity() - PageHeader.HEADER_SIZE;
     }
 
     static boolean isReady(final int recordHeader) {
@@ -71,5 +83,10 @@ public final class Page {
                 "slab=" + slab +
                 ", pageHeader=" + pageHeader +
                 '}';
+    }
+
+    int getPageNumber()
+    {
+        return pageNumber;
     }
 }
