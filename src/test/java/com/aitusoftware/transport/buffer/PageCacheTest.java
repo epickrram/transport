@@ -23,23 +23,9 @@ public class PageCacheTest
     @Test
     public void shouldAppendDataOverSeveralPages() throws Exception
     {
-        for (int i = 0; i < MESSAGE_COUNT; i++)
-        {
-            tagMessage(message, i);
-
-            pageCache.append(message);
-        }
+        Fixtures.writeMessages(message, pageCache, MESSAGE_COUNT);
 
         assertThat(pageCache.estimateTotalLength(), is((long) MESSAGE_COUNT * PADDED_MESSAGE_SIZE + (PAGE_COUNT + 1) * WASTED_PAGE_SPACE));
     }
 
-    private static void tagMessage(final ByteBuffer target, final int messageId)
-    {
-        target.clear();
-        while (target.remaining() != 0)
-        {
-            target.put((byte) messageId);
-        }
-        target.flip();
-    }
 }

@@ -1,10 +1,12 @@
 package com.aitusoftware.transport.buffer;
 
 import com.aitusoftware.transport.files.Directories;
+import com.aitusoftware.transport.files.Filenames;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class PageCache
@@ -29,18 +31,18 @@ public final class PageCache
 
     }
 
-    private final int pageSize;
     private final PageAllocator allocator;
+    private final Path path;
     private volatile Page currentPage;
     private volatile int currentPageNumber;
 
-    PageCache(final int pageSize, final Path path)
+    private PageCache(final int pageSize, final Path path)
     {
         // TODO should handle initialisation from existing file-system resources
-        this.pageSize = pageSize;
-        CURRENT_PAGE_VH.setRelease(this, new Page(SlabFactory.SLAB_FACTORY.createSlab(pageSize + PageHeader.HEADER_SIZE), INITIAL_PAGE_NUMBER));
+        this.path = path;
+        allocator = new PageAllocator(this.path, pageSize);
+        CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(INITIAL_PAGE_NUMBER));
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
-        allocator = new PageAllocator(path);
     }
 
     // contain page-cache header
@@ -79,6 +81,18 @@ public final class PageCache
                 page.nextAvailablePosition();
     }
 
+    public boolean isPageAvailable(final int pageNumber)
+    {
+        // optimisation - cache file names
+        return Files.exists(Filenames.forPageNumber(pageNumber, path));
+    }
+
+    public Page getPage(final int pageNumber)
+    {
+        // optimisation - cache pages
+        return allocator.loadExisting(pageNumber);
+    }
+
     private void handleOverflow(final ByteBuffer message, final Page page)
     {
         final int pageNumber = page.getPageNumber();
@@ -97,7 +111,7 @@ public final class PageCache
             if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
             {
                 // this thread won, allocate a new page
-                CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageSize, pageNumber + 1));
+                CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
                 break;
             }
         }
@@ -105,7 +119,7 @@ public final class PageCache
         append(message);
     }
 
-    static PageCache create(final Path path, final int pageSize)
+    public static PageCache create(final Path path, final int pageSize)
     {
         Directories.ensureDirectoryExists(path);
 

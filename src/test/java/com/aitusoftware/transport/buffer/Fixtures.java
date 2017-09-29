@@ -2,7 +2,7 @@ package com.aitusoftware.transport.buffer;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.FileSystem;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -68,5 +68,42 @@ public enum Fixtures
         {
             System.err.println("Failed to delete file: " + e.getMessage());
         }
+    }
+
+    public static void writeMessages(final ByteBuffer buffer, final PageCache pageCache, final int messageCount)
+    {
+        for (int i = 0; i < messageCount; i++)
+        {
+            tagMessage(buffer, i);
+
+            pageCache.append(buffer);
+        }
+    }
+
+    public static boolean isValidMessage(final ByteBuffer buffer, final int messageIndex)
+    {
+        if (buffer.remaining() == 0)
+        {
+            return false;
+        }
+        for (int i = 0; i < buffer.remaining(); i++)
+        {
+            if (buffer.get(i) != (byte) messageIndex)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void tagMessage(final ByteBuffer target, final int messageId)
+    {
+        target.clear();
+        while (target.remaining() != 0)
+        {
+            target.put((byte) messageId);
+        }
+        target.flip();
     }
 }

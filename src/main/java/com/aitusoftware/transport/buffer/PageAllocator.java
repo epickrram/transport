@@ -18,13 +18,15 @@ public final class PageAllocator
 
     private final boolean loadPageIntoMemory = false;
     private final Path path;
+    private final int pageSize;
 
-    public PageAllocator(final Path path)
+    public PageAllocator(final Path path, final int pageSize)
     {
         this.path = path;
+        this.pageSize = pageSize;
     }
 
-    Page safelyAllocatePage(final int pageSize, final int pageNumber)
+    Page safelyAllocatePage(final int pageNumber)
     {
         final Path pagePath = Filenames.forPageNumber(pageNumber, path);
         final long startNanos = System.nanoTime();
@@ -45,6 +47,12 @@ public final class PageAllocator
             }
         }
 
+        return loadExisting(pageNumber);
+    }
+
+    Page loadExisting(final int pageNumber)
+    {
+        final Path pagePath = Filenames.forPageNumber(pageNumber, path);
         try
         {
             final FileChannel channel = FileChannel.open(pagePath, StandardOpenOption.WRITE, StandardOpenOption.READ);

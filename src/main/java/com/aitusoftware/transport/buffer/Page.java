@@ -45,12 +45,12 @@ public final class Page
         }
     }
 
-    public void read(final long position, final ByteBuffer buffer)
+    public void read(final int position, final ByteBuffer buffer)
     {
         slab.copyInto(toPageOffset(position) + Record.HEADER_LENGTH, buffer);
     }
 
-    int header(final long position)
+    public int header(final int position)
     {
         return slab.getIntVolatile(toPageOffset(position));
     }
@@ -70,22 +70,22 @@ public final class Page
         return slab.capacity() - PageHeader.HEADER_SIZE;
     }
 
-    static boolean isReady(final int recordHeader)
+    public static boolean isReady(final int recordHeader)
     {
         return (recordHeader & READY_MARKER) != 0;
     }
 
-    static int recordLength(final int recordHeader)
+    public static int recordLength(final int recordHeader)
     {
         return recordHeader & MAX_DATA_LENGTH;
     }
 
-    private int toPageOffset(final long position)
+    private int toPageOffset(final int position)
     {
-        return (int) position + PageHeader.HEADER_SIZE;
+        return position + PageHeader.HEADER_SIZE;
     }
 
-    private boolean claimPosition(final long position)
+    private boolean claimPosition(final int position)
     {
         return slab.compareAndSetInt(toPageOffset(position), 0, CLAIMED_MARKER);
     }
