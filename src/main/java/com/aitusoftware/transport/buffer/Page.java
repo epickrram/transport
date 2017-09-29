@@ -2,6 +2,8 @@ package com.aitusoftware.transport.buffer;
 
 import java.nio.ByteBuffer;
 
+import static com.aitusoftware.transport.buffer.Offsets.toPageOffset;
+
 public final class Page
 {
     private static final int CLAIMED_MARKER = 0b1000_0000_0000_0000_0000_0000_0000_0000;
@@ -29,7 +31,7 @@ public final class Page
         }
         while (true)
         {
-            final int position = pageHeader.nextAvailablePosition();
+            final int position = pageHeader.nextAvailableWritePosition();
 
             if (position + remaining > availableDataLength())
             {
@@ -37,7 +39,7 @@ public final class Page
             }
             if (claimPosition(position))
             {
-                pageHeader.updateMaxPosition(position + remaining + Record.HEADER_LENGTH);
+                pageHeader.updateNextWritePosition(position + remaining + Record.HEADER_LENGTH);
                 slab.copy(toPageOffset(position) + Record.HEADER_LENGTH, data);
                 slab.writeOrderedInt(toPageOffset(position), READY_MARKER | remaining);
                 return WriteResult.SUCCESS;
@@ -62,7 +64,7 @@ public final class Page
 
     int nextAvailablePosition()
     {
-        return pageHeader.nextAvailablePosition();
+        return pageHeader.nextAvailableWritePosition();
     }
 
     private long availableDataLength()
@@ -78,11 +80,6 @@ public final class Page
     public static int recordLength(final int recordHeader)
     {
         return recordHeader & MAX_DATA_LENGTH;
-    }
-
-    private int toPageOffset(final int position)
-    {
-        return position + PageHeader.HEADER_SIZE;
     }
 
     private boolean claimPosition(final int position)

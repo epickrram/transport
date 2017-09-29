@@ -1,14 +1,20 @@
 package com.aitusoftware.transport.buffer;
 
-public final class Offsets {
+public final class Offsets
+{
+    private static final long CACHE_LINE_SIZE = 64L;
+    private static final long CACHE_LINE_MASK = CACHE_LINE_SIZE - 1L;
+
     private final int pageSize;
     private final int pageNumberShift;
     private final long pageOffsetMask;
 
-    public Offsets(final int pageSize) {
+    public Offsets(final int pageSize)
+    {
         this.pageSize = pageSize;
 
-        if (Integer.bitCount(pageSize) != 1) {
+        if (Integer.bitCount(pageSize) != 1)
+        {
             throw new IllegalArgumentException("pageSize must be a power of two");
         }
 
@@ -16,11 +22,28 @@ public final class Offsets {
         pageOffsetMask = pageSize - 1;
     }
 
-    int pageNumber(final long position) {
+    static int toPageOffset(final int position)
+    {
+        return position + PageHeader.HEADER_SIZE;
+    }
+
+    public static int getAlignedPosition(final int position)
+    {
+        int alignedPosition = position;
+        if ((position & CACHE_LINE_MASK) != 0L)
+        {
+            alignedPosition += CACHE_LINE_SIZE - (position & CACHE_LINE_MASK);
+        }
+        return alignedPosition;
+    }
+
+    int pageNumber(final long position)
+    {
         return (int) (position >> pageNumberShift);
     }
 
-    int pageOffset(final long position) {
+    int pageOffset(final long position)
+    {
         return (int) (position & pageOffsetMask);
     }
 }

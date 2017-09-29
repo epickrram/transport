@@ -37,7 +37,7 @@ public final class PageTest
             assertThat(decode(buffer), is(i));
 
             position += recordLength + Record.HEADER_LENGTH;
-            position = PageHeader.getAlignedPosition(position);
+            position = Offsets.getAlignedPosition(position);
         }
     }
 

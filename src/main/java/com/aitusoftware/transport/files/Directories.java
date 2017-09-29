@@ -7,7 +7,7 @@ import java.nio.file.Path;
 
 public enum Directories
 {
-    ;
+    DIRECTORIES;
 
     public static void ensureDirectoryExists(final Path path)
     {

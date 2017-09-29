@@ -1,5 +1,6 @@
 package com.aitusoftware.transport.buffer;
 
-public interface Record {
+public interface Record
+{
     int HEADER_LENGTH = 4;
 }

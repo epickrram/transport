@@ -1,8 +1,8 @@
 package com.aitusoftware.transport.reader;
 
+import com.aitusoftware.transport.buffer.Offsets;
 import com.aitusoftware.transport.buffer.Page;
 import com.aitusoftware.transport.buffer.PageCache;
-import com.aitusoftware.transport.buffer.PageHeader;
 
 import java.nio.ByteBuffer;
 
@@ -64,7 +64,7 @@ public final class StreamingReader
             page.read(position, buffer);
             recordHandler.onRecord(buffer, pageNumber, position);
             position += recordLength;
-            position = PageHeader.getAlignedPosition(position);
+            position = Offsets.getAlignedPosition(position);
             return true;
         }
         page = null;

@@ -6,8 +6,6 @@ public final class PageHeader
     private static final int MAX_POSITION_DATA_OFFSET = 0;
     private static final int NUMBER_OF_POSITION_RECORDS = 4;
     private static final int POSITION_RECORD_SIZE = 8;
-    private static final long CACHE_LINE_SIZE = 64L;
-    private static final long CACHE_LINE_MASK = CACHE_LINE_SIZE - 1L;
 
     private final Slab slab;
 
@@ -16,7 +14,7 @@ public final class PageHeader
         this.slab = slab;
     }
 
-    void updateMaxPosition(final int position)
+    void updateNextWritePosition(final int position)
     {
         final int positionRecordSlot = (position & (NUMBER_OF_POSITION_RECORDS - 1));
         final int recordOffset = getRecordOffset(positionRecordSlot);
@@ -27,17 +25,7 @@ public final class PageHeader
         }
     }
 
-    public static int getAlignedPosition(final int position)
-    {
-        int alignedPosition = position;
-        if ((position & CACHE_LINE_MASK) != 0L)
-        {
-            alignedPosition += CACHE_LINE_SIZE - (position & CACHE_LINE_MASK);
-        }
-        return alignedPosition;
-    }
-
-    int nextAvailablePosition()
+    int nextAvailableWritePosition()
     {
         int maxPosition = 0;
         for (int i = 0; i < NUMBER_OF_POSITION_RECORDS; i++)
@@ -45,7 +33,7 @@ public final class PageHeader
             maxPosition = Math.max(slab.getIntVolatile(getRecordOffset(i)), maxPosition);
         }
 
-        return getAlignedPosition(maxPosition);
+        return Offsets.getAlignedPosition(maxPosition);
     }
 
     @Override

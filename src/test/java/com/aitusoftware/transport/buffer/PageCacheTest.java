@@ -11,7 +11,7 @@ public class PageCacheTest
 {
     private static final int PAGE_SIZE = 4096;
     private static final int MESSAGE_SIZE = PAGE_SIZE / 23;
-    private static final int PADDED_MESSAGE_SIZE = PageHeader.getAlignedPosition(MESSAGE_SIZE);
+    private static final int PADDED_MESSAGE_SIZE = Offsets.getAlignedPosition(MESSAGE_SIZE);
     private static final int MESSAGES_PER_PAGE = PAGE_SIZE / PADDED_MESSAGE_SIZE;
     private static final int WASTED_PAGE_SPACE = PAGE_SIZE - (MESSAGES_PER_PAGE * PADDED_MESSAGE_SIZE);
     private static final int MESSAGE_COUNT = 128;

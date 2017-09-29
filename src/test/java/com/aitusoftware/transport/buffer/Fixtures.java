@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 public enum Fixtures
 {
-    ;
+    FIXTURES;
 
     private static final Collection<Path> PATHS_TO_DELETE =
             new ConcurrentLinkedQueue<>();

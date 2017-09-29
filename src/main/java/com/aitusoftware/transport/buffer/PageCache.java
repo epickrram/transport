@@ -64,6 +64,9 @@ public final class PageCache
                             "Message too large for current page: %s", currentPage));
                 case NOT_ENOUGH_SPACE:
                     handleOverflow(source, page);
+                    break;
+                default:
+                    throw new UnsupportedOperationException(writeResult.name());
             }
         }
         catch (RuntimeException e)

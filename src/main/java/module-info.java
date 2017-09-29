@@ -1,2 +1,2 @@
-module $MODULE_NAME$ {
+module com.aitusoftware.transport {
 }
