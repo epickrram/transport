@@ -11,25 +11,25 @@ public final class PageHeader
 
     private final Slab slab;
 
-    public PageHeader(final Slab slab, final int pageNumber)
+    public PageHeader(final Slab slab)
     {
         this.slab = slab;
     }
 
-    void updateMaxPosition(final long position)
+    void updateMaxPosition(final int position)
     {
-        final int positionRecordSlot = (int) (position & (NUMBER_OF_POSITION_RECORDS - 1));
+        final int positionRecordSlot = (position & (NUMBER_OF_POSITION_RECORDS - 1));
         final int recordOffset = getRecordOffset(positionRecordSlot);
-        long currentPosition;
-        while ((currentPosition = slab.getLongVolatile(recordOffset)) < position)
+        int currentPosition;
+        while ((currentPosition = slab.getIntVolatile(recordOffset)) < position)
         {
-            slab.compareAndSetLong(recordOffset, currentPosition, position);
+            slab.compareAndSetInt(recordOffset, currentPosition, position);
         }
     }
 
-    public static long getAlignedPosition(final long position)
+    public static int getAlignedPosition(final int position)
     {
-        long alignedPosition = position;
+        int alignedPosition = position;
         if ((position & CACHE_LINE_MASK) != 0L)
         {
             alignedPosition += CACHE_LINE_SIZE - (position & CACHE_LINE_MASK);
@@ -37,12 +37,12 @@ public final class PageHeader
         return alignedPosition;
     }
 
-    long nextAvailablePosition()
+    int nextAvailablePosition()
     {
-        long maxPosition = 0;
+        int maxPosition = 0;
         for (int i = 0; i < NUMBER_OF_POSITION_RECORDS; i++)
         {
-            maxPosition = Math.max(slab.getLongVolatile(getRecordOffset(i)), maxPosition);
+            maxPosition = Math.max(slab.getIntVolatile(getRecordOffset(i)), maxPosition);
         }
 
         return getAlignedPosition(maxPosition);

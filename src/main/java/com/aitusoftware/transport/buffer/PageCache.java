@@ -75,7 +75,7 @@ public final class PageCache
     long estimateTotalLength()
     {
         final Page page = (Page) CURRENT_PAGE_VH.get(this);
-        return page.getPageNumber() * page.totalDataSize() +
+        return ((long) page.getPageNumber()) * page.totalDataSize() +
                 page.nextAvailablePosition();
     }
 

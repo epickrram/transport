@@ -8,20 +8,24 @@ import static com.aitusoftware.transport.buffer.SlabFactory.SLAB_FACTORY;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-public final class PageTest {
+public final class PageTest
+{
     private final Page page = new Page(SLAB_FACTORY.createSlab(8192), 0);
 
     @Test
-    public void shouldPutAndRetrieveRecord() throws Exception {
+    public void shouldPutAndRetrieveRecord() throws Exception
+    {
         final ByteBuffer buffer = ByteBuffer.allocate(8);
-        for (long i = 0; i < 100; i++) {
+        for (long i = 0; i < 100; i++)
+        {
             encode(i, buffer);
 
             page.write(buffer);
         }
 
-        long position = 0;
-        for (long i = 0; i < 100; i++) {
+        int position = 0;
+        for (long i = 0; i < 100; i++)
+        {
             buffer.clear();
 
             final int header = page.header(position);
@@ -37,23 +41,22 @@ public final class PageTest {
         }
     }
 
-    // TODO assert behaviour -> on end of page, writer should add next page marker, then try to claim from the next page
-
-
-
     @Test
-    public void shouldIndicateThatPageFreeSpaceIsExhausted() throws Exception {
+    public void shouldIndicateThatPageFreeSpaceIsExhausted() throws Exception
+    {
         final ByteBuffer data = ByteBuffer.allocate(5000);
         assertThat(page.write(data), is(WriteResult.SUCCESS));
         data.clear();
         assertThat(page.write(data), is(WriteResult.NOT_ENOUGH_SPACE));
     }
 
-    private static long decode(final ByteBuffer source) {
+    private static long decode(final ByteBuffer source)
+    {
         return source.getLong();
     }
 
-    private static void encode(final long payload, final ByteBuffer target) {
+    private static void encode(final long payload, final ByteBuffer target)
+    {
         target.clear();
         target.putLong(payload);
         target.flip();
