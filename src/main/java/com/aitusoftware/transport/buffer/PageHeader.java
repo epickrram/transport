@@ -1,6 +1,7 @@
 package com.aitusoftware.transport.buffer;
 
-public final class PageHeader {
+public final class PageHeader
+{
     static final int HEADER_SIZE = 64 * 2;
     private static final int MAX_POSITION_DATA_OFFSET = 0;
     private static final int NUMBER_OF_POSITION_RECORDS = 4;
@@ -10,7 +11,8 @@ public final class PageHeader {
 
     private final Slab slab;
 
-    public PageHeader(final Slab slab, final int pageNumber) {
+    public PageHeader(final Slab slab, final int pageNumber)
+    {
         this.slab = slab;
     }
 
@@ -19,7 +21,8 @@ public final class PageHeader {
         final int positionRecordSlot = (int) (position & (NUMBER_OF_POSITION_RECORDS - 1));
         final int recordOffset = getRecordOffset(positionRecordSlot);
         long currentPosition;
-        while ((currentPosition = slab.getLongVolatile(recordOffset)) < position) {
+        while ((currentPosition = slab.getLongVolatile(recordOffset)) < position)
+        {
             slab.compareAndSetLong(recordOffset, currentPosition, position);
         }
     }
@@ -37,7 +40,8 @@ public final class PageHeader {
     long nextAvailablePosition()
     {
         long maxPosition = 0;
-        for (int i = 0; i < NUMBER_OF_POSITION_RECORDS; i++) {
+        for (int i = 0; i < NUMBER_OF_POSITION_RECORDS; i++)
+        {
             maxPosition = Math.max(slab.getLongVolatile(getRecordOffset(i)), maxPosition);
         }
 
@@ -58,7 +62,8 @@ public final class PageHeader {
         return buffer.toString();
     }
 
-    private static int getRecordOffset(final int positionRecordSlot) {
+    private static int getRecordOffset(final int positionRecordSlot)
+    {
         return MAX_POSITION_DATA_OFFSET + (positionRecordSlot * POSITION_RECORD_SIZE);
     }
 }

@@ -30,15 +30,17 @@ public final class PageCache
     }
 
     private final int pageSize;
+    private final PageAllocator allocator;
     private volatile Page currentPage;
     private volatile int currentPageNumber;
 
-    PageCache(final int pageSize)
+    PageCache(final int pageSize, final Path path)
     {
         // TODO should handle initialisation from existing file-system resources
         this.pageSize = pageSize;
         CURRENT_PAGE_VH.setRelease(this, new Page(SlabFactory.SLAB_FACTORY.createSlab(pageSize + PageHeader.HEADER_SIZE), INITIAL_PAGE_NUMBER));
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
+        allocator = new PageAllocator(path);
     }
 
     // contain page-cache header
@@ -95,7 +97,7 @@ public final class PageCache
             if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
             {
                 // this thread won, allocate a new page
-                CURRENT_PAGE_VH.setRelease(this, new Page(SlabFactory.SLAB_FACTORY.createSlab(pageSize + PageHeader.HEADER_SIZE), pageNumber + 1));
+                CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageSize, pageNumber + 1));
                 break;
             }
         }
@@ -107,6 +109,6 @@ public final class PageCache
     {
         Directories.ensureDirectoryExists(path);
 
-        return new PageCache(pageSize);
+        return new PageCache(pageSize, path);
     }
 }
