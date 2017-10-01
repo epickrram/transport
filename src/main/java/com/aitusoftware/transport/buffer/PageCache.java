@@ -45,6 +45,11 @@ public final class PageCache
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
     }
 
+    public WritableRecord acquireRecordBuffer(final int recordLength)
+    {
+        return new WritableRecord();
+    }
+
     // contain page-cache header
     void append(final ByteBuffer source)
     {
