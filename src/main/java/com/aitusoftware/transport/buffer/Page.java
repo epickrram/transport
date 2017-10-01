@@ -52,6 +52,18 @@ public final class Page
         slab.copyInto(toPageOffset(position) + Record.HEADER_LENGTH, buffer);
     }
 
+    public void setSlice(final ByteBuffer slice, final int position, final int recordLength)
+    {
+        final int newPosition = toPageOffset(position) + Record.HEADER_LENGTH;
+        slice.clear();
+        slice.position(newPosition).limit(newPosition + recordLength);
+    }
+
+    public ByteBuffer slice()
+    {
+        return slab.slice();
+    }
+
     public int header(final int position)
     {
         return slab.getIntVolatile(toPageOffset(position));

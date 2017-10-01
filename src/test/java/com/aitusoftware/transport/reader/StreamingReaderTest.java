@@ -16,16 +16,30 @@ public class StreamingReaderTest
     private final ByteBuffer message = ByteBuffer.allocate(337);
     private final PageCache pageCache = PageCache.create(Fixtures.tempDirectory(), 4096);
     private final CapturingRecordHandler handler = new CapturingRecordHandler();
-    private final StreamingReader reader = new StreamingReader(pageCache, handler, false);
 
     @Test
-    public void shouldReadAllEntries() throws Exception
+    public void shouldReadAllEntriesWithBufferCopy() throws Exception
     {
         Fixtures.writeMessages(message, pageCache, MESSAGE_COUNT);
 
-        reader.process();
+        createReader(false).process();
 
         assertThat(handler.messageCount, is(MESSAGE_COUNT));
+    }
+
+    @Test
+    public void shouldReadAllEntriesZeroCopy() throws Exception
+    {
+        Fixtures.writeMessages(message, pageCache, MESSAGE_COUNT);
+
+        createReader(true).process();
+
+        assertThat(handler.messageCount, is(MESSAGE_COUNT));
+    }
+
+    private StreamingReader createReader(final boolean zeroCopy)
+    {
+        return new StreamingReader(pageCache, handler, false, zeroCopy);
     }
 
     private static final class CapturingRecordHandler implements RecordHandler
@@ -35,7 +49,12 @@ public class StreamingReaderTest
         @Override
         public void onRecord(final ByteBuffer data, final int pageNumber, final int position)
         {
-            assertTrue(Fixtures.isValidMessage(data, messageCount));
+            final byte[] copy = new byte[data.remaining()];
+            data.mark();
+            data.get(copy);
+            data.reset();
+
+            assertTrue(new String(copy), Fixtures.isValidMessage(data, messageCount));
             messageCount++;
         }
     }

@@ -10,6 +10,7 @@ public final class Slab
     private final ByteBuffer backingStore;
     private final VarHandle longArrayView;
     private final VarHandle intArrayView;
+    private final ThreadLocal<ByteBuffer> threadLocalSlice;
 
     public Slab(final ByteBuffer backingStore)
     {
@@ -17,6 +18,7 @@ public final class Slab
         // TODO should be static final
         longArrayView = MethodHandles.byteBufferViewVarHandle(long[].class, ByteOrder.nativeOrder());
         intArrayView = MethodHandles.byteBufferViewVarHandle(int[].class, ByteOrder.nativeOrder());
+        threadLocalSlice = ThreadLocal.withInitial(backingStore::slice);
     }
 
     public boolean compareAndSetLong(final int offset, final long expected, final long updated)
@@ -54,21 +56,28 @@ public final class Slab
         intArrayView.setRelease(backingStore, offset, value);
     }
 
+    // TODO not thread-safe
     public void copy(final int offset, final ByteBuffer source)
     {
-        final int startPosition = backingStore.position();
-        backingStore.position(offset).put(source).position(startPosition);
+        final ByteBuffer slice = threadLocalSlice.get();
+        slice.clear();
+        slice.position(offset).put(source);
     }
 
+    // TODO not thread-safe
     public void copyInto(final int offset, final ByteBuffer destination)
     {
-        final int startPosition = backingStore.position();
-        final int startLimit = backingStore.limit();
-        backingStore.position(offset);
-        backingStore.limit(offset + destination.remaining());
-        destination.put(backingStore);
-        backingStore.position(startPosition).limit(startLimit);
+        final ByteBuffer slice = threadLocalSlice.get();
+        slice.clear();
+        slice.position(offset);
+        slice.limit(offset + destination.remaining());
+        destination.put(slice);
         destination.flip();
+    }
+
+    ByteBuffer slice()
+    {
+        return backingStore.slice();
     }
 
     public int capacity()

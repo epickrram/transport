@@ -82,13 +82,14 @@ public enum Fixtures
 
     public static boolean isValidMessage(final ByteBuffer buffer, final int messageIndex)
     {
-        if (buffer.remaining() == 0)
+        final int messageLength = buffer.remaining();
+        if (messageLength == 0)
         {
             return false;
         }
-        for (int i = 0; i < buffer.remaining(); i++)
+        for (int i = 0; i < messageLength; i++)
         {
-            if (buffer.get(i) != (byte) messageIndex)
+            if (buffer.get() != (byte) messageIndex)
             {
                 return false;
             }
