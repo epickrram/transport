@@ -20,7 +20,7 @@ public final class PausingIdler implements Idler
     private volatile Thread parkedThread;
     private volatile int woken;
 
-    PausingIdler(final long duration, final TimeUnit timeUnit)
+    public PausingIdler(final long duration, final TimeUnit timeUnit)
     {
         this.timeUnit = timeUnit;
         this.duration = duration;
@@ -29,12 +29,9 @@ public final class PausingIdler implements Idler
     @Override
     public void idle()
     {
-        WOKEN.lazySet(this, 0);
+        WOKEN.set(this, 0);
         PARKED_THREAD.lazySet(this, Thread.currentThread());
-        while (!Thread.currentThread().isInterrupted())
-        {
-            LockSupport.parkNanos(timeUnit.toNanos(duration));
-        }
+        LockSupport.parkNanos(timeUnit.toNanos(duration));
 
         if (Thread.currentThread().isInterrupted() && WOKEN.get(this) == 0)
         {

@@ -3,8 +3,11 @@ package com.aitusoftware.transport.reader;
 import com.aitusoftware.transport.buffer.Offsets;
 import com.aitusoftware.transport.buffer.Page;
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.threads.Idler;
+import com.aitusoftware.transport.threads.PausingIdler;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 public final class StreamingReader
 {
@@ -12,6 +15,7 @@ public final class StreamingReader
     private final RecordHandler recordHandler;
     private final boolean tail;
     private final boolean zeroCopy;
+    private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
     private int pageNumber = 0;
     private int position = 0;
     private Page page;
@@ -38,7 +42,7 @@ public final class StreamingReader
                 {
                     return;
                 }
-                Thread.yield();
+                idler.idle();
             }
         }
     }
@@ -82,7 +86,7 @@ public final class StreamingReader
         page = null;
         pageNumber++;
         position = 0;
-        return true;
+        return pageCache.isPageAvailable(pageNumber);
     }
 
     private static int toNextPowerOfTwo(final int input)
