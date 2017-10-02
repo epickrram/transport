@@ -54,7 +54,8 @@ public class StreamingReaderTest
             data.get(copy);
             data.reset();
 
-            assertTrue(new String(copy), Fixtures.isValidMessage(data, messageCount));
+            assertTrue("Bad message at: " + messageCount + "/" + new String(copy),
+                    Fixtures.isValidMessage(data, messageCount));
             messageCount++;
         }
     }

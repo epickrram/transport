@@ -31,6 +31,8 @@ public final class PageCache
 
     }
 
+    private static final ThreadLocal<WritableRecord> RECORD_BUFFER =
+            ThreadLocal.withInitial(WritableRecord::new);
     private final PageAllocator allocator;
     private final Path path;
     private volatile Page currentPage;
@@ -47,7 +49,25 @@ public final class PageCache
 
     public WritableRecord acquireRecordBuffer(final int recordLength)
     {
-        return new WritableRecord();
+        final Page page = (Page) CURRENT_PAGE_VH.getVolatile(this);
+        final int position = page.acquireSpaceInBuffer(recordLength);
+
+        if (position >= 0)
+        {
+            final WritableRecord record = RECORD_BUFFER.get();
+            record.set(page.slice(position, recordLength), page, position);
+            return record;
+        }
+        else if (position == Page.ERR_MESSAGE_TOO_LARGE)
+        {
+            throw new RuntimeException(String.format(
+                    "Message too large for current page: %s", currentPage));
+        }
+        else if (position == Page.ERR_NOT_ENOUGH_SPACE)
+        {
+            throw new UnsupportedOperationException("TODO");
+        }
+        throw new IllegalStateException();
     }
 
     // contain page-cache header

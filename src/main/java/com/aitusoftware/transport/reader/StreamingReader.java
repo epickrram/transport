@@ -20,7 +20,6 @@ public final class StreamingReader
     private int position = 0;
     private Page page;
     private ByteBuffer buffer = ByteBuffer.allocateDirect(256);
-    private ByteBuffer slice;
 
     public StreamingReader(
             final PageCache pageCache, final RecordHandler recordHandler,
@@ -56,7 +55,6 @@ public final class StreamingReader
                 return false;
             }
             page = pageCache.getPage(pageNumber);
-            slice = page.slice();
         }
 
         final int header = page.header(position);
@@ -65,7 +63,7 @@ public final class StreamingReader
             final int recordLength = Page.recordLength(header);
             if (zeroCopy)
             {
-                page.setSlice(slice, position, recordLength);
+                final ByteBuffer slice = page.slice(position, recordLength);
                 recordHandler.onRecord(slice, pageNumber, position);
             }
             else

@@ -2,7 +2,6 @@ package com.aitusoftware.transport.messaging.proxy;
 
 import com.aitusoftware.transport.buffer.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.file.Path;
@@ -10,7 +9,7 @@ import java.nio.file.Path;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-@Ignore
+//@Ignore
 public final class ProxyIntegrationTest
 {
     private final Path tempDir = Fixtures.tempDirectory();
@@ -24,6 +23,6 @@ public final class ProxyIntegrationTest
         proxy.say("hola", 7);
         proxy.say("bonjour", 11);
 
-        assertThat(pageCache.estimateTotalLength(), is(50));
+        assertThat(pageCache.estimateTotalLength(), is(128L));
     }
 }
