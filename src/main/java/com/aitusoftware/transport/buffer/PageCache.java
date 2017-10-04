@@ -68,13 +68,16 @@ public final class PageCache
         else if (position == Page.ERR_NOT_ENOUGH_SPACE)
         {
             final int pageNumber = page.getPageNumber();
+            System.out.printf("%s not enough space at %d:%d%n", Thread.currentThread().getName(), pageNumber, position);
             while (!Thread.currentThread().isInterrupted())
             {
-                if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) == pageNumber + 1 &&
+                if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) >= pageNumber + 1 &&
                         ((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1)
                 {
+                    System.out.printf("%s another page has won, waiting for publication of %d%n", Thread.currentThread().getName(),
+                            pageNumber + 1);
                     // another write has won, and will allocate a new page
-                    while ((((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1))
+                    while ((((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() < pageNumber + 1))
                     {
                         Thread.yield();
                     }
@@ -83,6 +86,7 @@ public final class PageCache
                 if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
                 {
                     // this thread won, allocate a new page
+                    System.out.printf("%s allocating new page: %d%n", Thread.currentThread().getName(), pageNumber + 1);
                     CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
                     break;
                 }
