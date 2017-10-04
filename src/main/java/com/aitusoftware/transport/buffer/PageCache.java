@@ -35,6 +35,7 @@ public final class PageCache
             ThreadLocal.withInitial(WritableRecord::new);
     private final PageAllocator allocator;
     private final Path path;
+    private final int pageSize;
     private volatile Page currentPage;
     private volatile int currentPageNumber;
 
@@ -45,6 +46,7 @@ public final class PageCache
         allocator = new PageAllocator(this.path, pageSize);
         CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(INITIAL_PAGE_NUMBER));
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
+        this.pageSize = pageSize;
     }
 
     public WritableRecord acquireRecordBuffer(final int recordLength)
@@ -118,6 +120,11 @@ public final class PageCache
     {
         // optimisation - cache pages
         return allocator.loadExisting(pageNumber);
+    }
+
+    public int getPageSize()
+    {
+        return pageSize;
     }
 
     public static PageCache create(final Path path, final int pageSize)

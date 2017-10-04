@@ -1,14 +1,13 @@
 package com.aitusoftware.transport.messaging.proxy;
 
 import com.aitusoftware.proxygen.Constants;
-import com.aitusoftware.transport.buffer.PageCache;
 
 import java.lang.reflect.InvocationTargetException;
 
 public final class SubscriberFactory
 {
     @SuppressWarnings("unchecked")
-    public <T> AbstractSubscriber<T> getSubscriber(
+    public <T> Subscriber<T> getSubscriber(
             final Class<T> topicDefinition, final T implementation)
     {
         final String subscriberProxyClassname = topicDefinition.getName() +
@@ -23,7 +22,7 @@ public final class SubscriberFactory
                 NoSuchMethodException | InstantiationException |
                 InvocationTargetException e)
         {
-            throw new IllegalArgumentException("Failed to load publisher for " + topicDefinition.getName());
+            throw new IllegalArgumentException("Failed to load subscriber for " + topicDefinition.getName(), e);
         }
     }
 }

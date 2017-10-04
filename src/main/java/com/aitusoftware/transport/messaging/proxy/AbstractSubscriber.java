@@ -1,26 +1,32 @@
 package com.aitusoftware.transport.messaging.proxy;
 
-import com.aitusoftware.transport.reader.RecordHandler;
+import com.aitusoftware.transport.messaging.TopicIdCalculator;
 
 import java.nio.ByteBuffer;
 
-public abstract class AbstractSubscriber<T> implements RecordHandler
+public abstract class AbstractSubscriber<T> implements Subscriber<T>
 {
     private final T implementation;
     private final MethodInvoker<T>[] invokers;
+    private final int topicId;
 
-    AbstractSubscriber(final T implementation, final MethodInvoker<T>[] invokers)
+    protected AbstractSubscriber(final T implementation, final MethodInvoker<T>[] invokers)
     {
         this.implementation = implementation;
         this.invokers = invokers;
+        topicId = TopicIdCalculator.calculate(implementation.getClass());
     }
 
     @Override
     public void onRecord(final ByteBuffer data, final int pageNumber, final int position)
     {
-        // TODO should be used for dispatch to subscriber
-        final int topicIdToBeConsumedByDispatcher = data.getInt();
         final byte methodIndex = data.get();
         invokers[methodIndex].invoke(implementation, data);
+    }
+
+    @Override
+    public int getTopicId()
+    {
+        return topicId;
     }
 }

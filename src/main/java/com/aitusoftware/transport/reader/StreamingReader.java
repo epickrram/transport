@@ -79,6 +79,13 @@ public final class StreamingReader
             }
             position += recordLength;
             position = Offsets.getAlignedPosition(position);
+
+            if (position >= pageCache.getPageSize())
+            {
+                page = null;
+                pageNumber++;
+                position = 0;
+            }
             return true;
         }
         page = null;

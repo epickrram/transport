@@ -29,7 +29,7 @@ public final class PublisherFactory
                 NoSuchMethodException | InstantiationException |
                 InvocationTargetException e)
         {
-            throw new IllegalArgumentException("Failed to load publisher for " + topicDefinition.getName());
+            throw new IllegalArgumentException("Failed to load publisher for " + topicDefinition.getName(), e);
         }
     }
 }

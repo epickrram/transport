@@ -2,17 +2,18 @@ package com.aitusoftware.transport.messaging.proxy;
 
 import com.aitusoftware.transport.buffer.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.messaging.TestTopic;
+import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public final class ProxyIntegrationTest
 {
@@ -34,7 +35,7 @@ public final class ProxyIntegrationTest
     @Test
     public void shouldLoadSubscriber() throws Exception
     {
-        final AbstractSubscriber<TestTopic> subscriber =
+        final Subscriber subscriber =
                 subscriberFactory.getSubscriber(TestTopic.class, (message, counter) -> {
 
         });
@@ -46,13 +47,21 @@ public final class ProxyIntegrationTest
         final TestTopic proxy = factory.getPublisherProxy(TestTopic.class);
 
         final Capture capture = new Capture();
-        final AbstractSubscriber<TestTopic> subscriber =
+        final Subscriber<TestTopic> subscriber =
                 subscriberFactory.getSubscriber(TestTopic.class, capture);
 
         proxy.say("hola", 7);
         proxy.say("bonjour", 11);
 
-        new StreamingReader(pageCache, subscriber, false, true).process();
+        new StreamingReader(pageCache, new RecordHandler()
+        {
+            @Override
+            public void onRecord(final ByteBuffer data, final int pageNumber, final int position)
+            {
+                data.getInt();
+                subscriber.onRecord(data, pageNumber, position);
+            }
+        }, false, true).process();
 
         assertThat(capture.received.size(), is(2));
         assertThat(capture.received.get("hola"), is(7));
