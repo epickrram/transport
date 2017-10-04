@@ -44,13 +44,9 @@ public final class Decoder
         return Double.longBitsToDouble(buffer.getLong());
     }
 
-    private static final ThreadLocal<StringBuilder> CHAR_SEQUENCE =
-            ThreadLocal.withInitial(StringBuilder::new);
-
-    public static CharSequence decodeCharSequence(final ByteBuffer buffer)
+    public static CharSequence decodeCharSequence(final ByteBuffer buffer, final StringBuilder builder)
     {
         final int length = buffer.getInt();
-        final StringBuilder builder = CHAR_SEQUENCE.get();
         builder.setLength(0);
         for (int i = 0; i < length; i++)
         {

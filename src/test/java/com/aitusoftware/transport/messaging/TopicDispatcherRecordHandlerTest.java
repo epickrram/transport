@@ -11,36 +11,24 @@ import org.junit.Test;
 
 import java.nio.file.Path;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+
 public final class TopicDispatcherRecordHandlerTest
 {
     private final Path tempDir = Fixtures.tempDirectory();
-    private final PageCache pageCache = PageCache.create(tempDir, 256);
+    private final PageCache pageCache = PageCache.create(tempDir, 4096);
     private final PublisherFactory factory = new PublisherFactory(pageCache);
     private final SubscriberFactory subscriberFactory = new SubscriberFactory();
 
     @Test
     public void shouldDispatchMessages() throws Exception
     {
+        final MessageCounter messageCounter = new MessageCounter();
         final Subscriber testTopicSubscriber =
-                subscriberFactory.getSubscriber(TestTopic.class, new TestTopic()
-                {
-                    @Override
-                    public void say(final CharSequence message, final int counter)
-                    {
-                        System.out.println("say " + message);
-                    }
-                });
-        final Subscriber otherTopicSubscriber = subscriberFactory.getSubscriber(OtherTopic.class, new OtherTopic()
-        {
-            @Override
-            public void testParams(final boolean truth, final byte tByte, final short tShort,
-                                   final int tInt, final float tFloat, final long tLong,
-                                   final double tDouble, final CharSequence zeroCopy, final CharSequence heapCopy)
-            {
-                System.out.println("testParams");
-            }
-        });
-
+                subscriberFactory.getSubscriber(TestTopic.class, messageCounter);
+        final Subscriber otherTopicSubscriber = subscriberFactory.getSubscriber(OtherTopic.class, new ParamValidator());
 
         final TestTopic proxy = factory.getPublisherProxy(TestTopic.class);
         final OtherTopic paramTester = factory.getPublisherProxy(OtherTopic.class);
@@ -66,7 +54,49 @@ public final class TopicDispatcherRecordHandlerTest
 
         new StreamingReader(pageCache, topicDispatcher, false, true).process();
 
-
+        assertThat(messageCounter.messageCount, is(2));
     }
 
+    private static class ParamValidator implements OtherTopic
+    {
+        @Override
+        public void testParams(final boolean truth, final byte tByte, final short tShort,
+                               final int tInt, final float tFloat, final long tLong,
+                               final double tDouble, final CharSequence zeroCopy, final CharSequence heapCopy)
+        {
+            if (truth)
+            {
+                assertThat(tByte, is((byte) 5));
+                assertThat(tShort, is((short) 7));
+                assertThat(tInt, is(11));
+                assertThat(tFloat, is(13.7f));
+                assertThat(tLong, is(17L));
+                assertThat(tDouble, is(19.37d));
+                assertThat(zeroCopy.toString(), is("first"));
+                assertThat(heapCopy.toString(), is("second"));
+            }
+            else
+            {
+                assertThat(tByte, is((byte) -5));
+                assertThat(tShort, is((short) -7));
+                assertThat(tInt, is(-11));
+                assertThat(tFloat, is(Float.MAX_VALUE));
+                assertThat(tLong, is(Long.MIN_VALUE));
+                assertThat(tDouble, is(Double.POSITIVE_INFINITY));
+                assertThat(zeroCopy.toString(), is("first"));
+                assertThat(heapCopy.toString(), is("second"));
+            }
+        }
+    }
+
+    private static class MessageCounter implements TestTopic
+    {
+        private int messageCount;
+
+        @Override
+        public void say(final CharSequence message, final int counter)
+        {
+            messageCount++;
+        }
+    }
 }
