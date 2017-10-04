@@ -49,7 +49,7 @@ public final class Encoder
         buffer.putInt(seq.length());
         for (int i = 0; i < seq.length(); i++)
         {
-            buffer.putInt(seq.charAt(i));
+            buffer.putChar(seq.charAt(i));
         }
     }
 }

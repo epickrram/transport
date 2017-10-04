@@ -28,4 +28,11 @@ public class PageCacheTest
         assertThat(pageCache.estimateTotalLength(), is((long) MESSAGE_COUNT * PADDED_MESSAGE_SIZE + (PAGE_COUNT + 1) * WASTED_PAGE_SPACE));
     }
 
+    @Test
+    public void shouldAcquireZeroCopyBufferOverSeveralPages() throws Exception
+    {
+        Fixtures.writeMessages(MESSAGE_SIZE, pageCache, MESSAGE_COUNT);
+
+        assertThat(pageCache.estimateTotalLength(), is((long) MESSAGE_COUNT * PADDED_MESSAGE_SIZE + (PAGE_COUNT + 1) * WASTED_PAGE_SPACE));
+    }
 }

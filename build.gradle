@@ -73,6 +73,8 @@ dependencies {
     testCompile 'com.aitusoftware:proxygen:0.0.1'
 
     compile 'com.aitusoftware:proxygen:0.0.1'
+    compile group: 'org.agrona', name: 'agrona', version: '0.9.7'
+
 
     apt 'com.aitusoftware:proxygen:0.0.1'
     testApt 'com.aitusoftware:proxygen:0.0.1'

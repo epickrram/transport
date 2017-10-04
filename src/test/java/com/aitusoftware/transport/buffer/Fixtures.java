@@ -74,9 +74,21 @@ public enum Fixtures
     {
         for (int i = 0; i < messageCount; i++)
         {
+            buffer.clear();
             tagMessage(buffer, i);
+            buffer.flip();
 
             pageCache.append(buffer);
+        }
+    }
+
+    public static void writeMessages(final int messageLength, final PageCache pageCache, final int messageCount)
+    {
+        for (int i = 0; i < messageCount; i++)
+        {
+            final WritableRecord record = pageCache.acquireRecordBuffer(messageLength);
+            tagMessage(record.buffer(), i);
+            record.commit();
         }
     }
 
@@ -100,11 +112,9 @@ public enum Fixtures
 
     private static void tagMessage(final ByteBuffer target, final int messageId)
     {
-        target.clear();
         while (target.remaining() != 0)
         {
             target.put((byte) messageId);
         }
-        target.flip();
     }
 }

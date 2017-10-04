@@ -65,41 +65,40 @@ public final class PageCache
         }
         else if (position == Page.ERR_NOT_ENOUGH_SPACE)
         {
-            throw new UnsupportedOperationException("TODO");
+            final int pageNumber = page.getPageNumber();
+            while (!Thread.currentThread().isInterrupted())
+            {
+                if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) == pageNumber + 1 &&
+                        ((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1)
+                {
+                    // another write has won, and will allocate a new page
+                    while ((((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1))
+                    {
+                        Thread.yield();
+                    }
+                    break;
+                }
+                if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
+                {
+                    // this thread won, allocate a new page
+                    CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
+                    break;
+                }
+            }
+            return acquireRecordBuffer(recordLength);
         }
-        throw new IllegalStateException();
+        else
+        {
+            throw new IllegalStateException();
+        }
     }
 
     // contain page-cache header
     void append(final ByteBuffer source)
     {
-        final Page page = (Page) CURRENT_PAGE_VH.getVolatile(this);
-        try
-        {
-            final WriteResult writeResult = page.write(source);
-            switch (writeResult)
-            {
-                case SUCCESS:
-                    return;
-                case FAILURE:
-                    throw new RuntimeException(String.format(
-                            "Failed to append to current page: %s", currentPage));
-                case MESSAGE_TOO_LARGE:
-                    throw new RuntimeException(String.format(
-                            "Message too large for current page: %s", currentPage));
-                case NOT_ENOUGH_SPACE:
-                    handleOverflow(source, page);
-                    break;
-                default:
-                    throw new UnsupportedOperationException(writeResult.name());
-            }
-        }
-        catch (RuntimeException e)
-        {
-            throw new RuntimeException(String.format(
-                    "Failed to write to current page: %s", currentPage
-            ), e);
-        }
+        final WritableRecord record = acquireRecordBuffer(source.remaining());
+        record.buffer().put(source);
+        record.commit();
     }
 
     public long estimateTotalLength()
@@ -119,32 +118,6 @@ public final class PageCache
     {
         // optimisation - cache pages
         return allocator.loadExisting(pageNumber);
-    }
-
-    private void handleOverflow(final ByteBuffer message, final Page page)
-    {
-        final int pageNumber = page.getPageNumber();
-        while (!Thread.currentThread().isInterrupted())
-        {
-            if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) == pageNumber + 1 &&
-                    ((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1)
-            {
-                // another write has won, and will allocate a new page
-                while ((((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() != pageNumber + 1))
-                {
-                    Thread.yield();
-                }
-                break;
-            }
-            if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
-            {
-                // this thread won, allocate a new page
-                CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
-                break;
-            }
-        }
-
-        append(message);
     }
 
     public static PageCache create(final Path path, final int pageSize)
