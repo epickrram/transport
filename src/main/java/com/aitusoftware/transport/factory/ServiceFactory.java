@@ -16,6 +16,7 @@ public final class ServiceFactory
 {
     public static final String PUBLISHER_PAGE_CACHE_PATH = "pub";
     public static final String SUBSCRIBER_PAGE_CACHE_PATH = "sub";
+    public static final int PAGE_SIZE = 1 << 18;
 
     private final Path pageCachePath;
     private final PublisherFactory publisherFactory;
@@ -27,8 +28,8 @@ public final class ServiceFactory
     public ServiceFactory(final Path pageCachePath)
     {
         this.pageCachePath = pageCachePath;
-        publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), 1 << 18);
-        subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), 1 << 18);
+        publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
+        subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
         publisherFactory = new PublisherFactory(publisherPageCache);
         subscriberFactory = new SubscriberFactory();
     }

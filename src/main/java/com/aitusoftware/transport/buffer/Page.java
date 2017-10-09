@@ -28,6 +28,7 @@ public final class Page
     Page(final Slab slab, final int pageNumber, final Path pagePath)
     {
         this.slab = slab;
+        // TODO pageSize should be in header
         pageHeader = new PageHeader(slab);
         this.pageNumber = pageNumber;
         this.pagePath = pagePath;

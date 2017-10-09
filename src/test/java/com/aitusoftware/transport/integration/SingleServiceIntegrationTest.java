@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
 
-public final class ServiceIntegrationTest
+public final class SingleServiceIntegrationTest
 {
     private Service service;
     private MarketData marketDataPublisher;
@@ -41,9 +41,9 @@ public final class ServiceIntegrationTest
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(TradeNotifications.class, traderBot));
         this.service = serviceFactory.create();
-
-        marketDataPublisher = new PublisherFactory(serviceFactory.getSubscriberPageCache()).getPublisherProxy(MarketData.class);
-        final PageCache subscriberPageCache = serviceFactory.getPublisherPageCache();
+        final PageCache inputPageCache = PageCache.create(path.resolve(ServiceFactory.SUBSCRIBER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
+        marketDataPublisher = new PublisherFactory(inputPageCache).getPublisherProxy(MarketData.class);
+        final PageCache outputPageCache = PageCache.create(path.resolve(ServiceFactory.PUBLISHER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
         this.latch = new CountDownLatch(1);
 
         final Subscriber<OrderNotifications> subscriber = new SubscriberFactory().getSubscriber(OrderNotifications.class, new OrderNotifications()
@@ -69,7 +69,7 @@ public final class ServiceIntegrationTest
 
         final Int2ObjectHashMap<Subscriber> subscriberMap = new Int2ObjectHashMap<>();
         subscriberMap.put(subscriber.getTopicId(), subscriber);
-        final StreamingReader streamingReader = new StreamingReader(subscriberPageCache, new TopicDispatcherRecordHandler(subscriberMap), true, true);
+        final StreamingReader streamingReader = new StreamingReader(outputPageCache, new TopicDispatcherRecordHandler(subscriberMap), true, true);
         executor = Executors.newSingleThreadExecutor();
         executor.execute(streamingReader::process);
         this.service.start();
