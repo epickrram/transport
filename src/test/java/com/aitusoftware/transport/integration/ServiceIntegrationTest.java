@@ -13,7 +13,6 @@ import com.aitusoftware.transport.reader.StreamingReader;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.file.Path;
@@ -24,8 +23,6 @@ import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
 
-
-@Ignore
 public final class ServiceIntegrationTest
 {
     private Service service;
@@ -75,6 +72,7 @@ public final class ServiceIntegrationTest
         final StreamingReader streamingReader = new StreamingReader(subscriberPageCache, new TopicDispatcherRecordHandler(subscriberMap), true, true);
         executor = Executors.newSingleThreadExecutor();
         executor.execute(streamingReader::process);
+        this.service.start();
     }
 
     @Test
@@ -84,7 +82,6 @@ public final class ServiceIntegrationTest
         {
             marketDataPublisher.onAsk("USD/EUR", i, 17 * i, 37);
         }
-        this.service.start();
 
         assertTrue(latch.await(5, TimeUnit.SECONDS));
     }
