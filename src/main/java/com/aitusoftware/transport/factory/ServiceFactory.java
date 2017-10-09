@@ -28,6 +28,7 @@ public final class ServiceFactory
     private final PublisherFactory publisherFactory;
     private final PageCache subscriberPageCache;
     private final Int2ObjectHashMap<Subscriber> topicToSubscriber = new Int2ObjectHashMap<>();
+    private final Int2ObjectHashMap<SocketAddress> topicToListenerAddress = new Int2ObjectHashMap<>();
     private final SubscriberFactory subscriberFactory;
     private final PageCache publisherPageCache;
     private final SocketMapper socketMapper = new SocketMapper();
@@ -50,9 +51,13 @@ public final class ServiceFactory
     {
         final int topicId = TopicIdCalculator.calculate(definition.getTopic());
         topicToSubscriber.put(topicId, subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation()));
+        if (definition.getSocketAddress() != null)
+        {
+            topicToListenerAddress.put(topicId, definition.getSocketAddress());
+        }
     }
 
-    public <T> void registerRemoteSubscriber(
+    public <T> void registerRemoteListenerTo(
             final T implementation, final SocketAddress socketAddress)
     {
         socketMapper.addAddress(TopicIdCalculator.calculate(implementation.getClass()), socketAddress);
@@ -91,6 +96,10 @@ public final class ServiceFactory
 
         void addAddress(final int topicId, final SocketAddress address)
         {
+            if (topicToAddress.containsKey(topicId))
+            {
+                throw new IllegalStateException("Already contains an address for " + topicId);
+            }
             topicToAddress.put(topicId, address);
         }
     }

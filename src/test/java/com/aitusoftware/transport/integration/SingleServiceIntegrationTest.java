@@ -37,9 +37,9 @@ public final class SingleServiceIntegrationTest
 
         final ServiceFactory serviceFactory = new ServiceFactory(path);
         final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class));
-        serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot));
-        serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot));
-        serviceFactory.registerSubscriber(new SubscriberDefinition<>(TradeNotifications.class, traderBot));
+        serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, null));
+        serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, null));
+        serviceFactory.registerSubscriber(new SubscriberDefinition<>(TradeNotifications.class, traderBot, null));
         this.service = serviceFactory.create();
         final PageCache inputPageCache = PageCache.create(path.resolve(ServiceFactory.SUBSCRIBER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
         marketDataPublisher = new PublisherFactory(inputPageCache).getPublisherProxy(MarketData.class);
