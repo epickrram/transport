@@ -7,10 +7,16 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.net.OutputChannel;
+import com.aitusoftware.transport.net.TopicToChannelMapper;
 import com.aitusoftware.transport.reader.StreamingReader;
 import org.agrona.collections.Int2ObjectHashMap;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.SocketAddress;
+import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
+import java.util.function.IntFunction;
 
 public final class ServiceFactory
 {
@@ -24,6 +30,7 @@ public final class ServiceFactory
     private final Int2ObjectHashMap<Subscriber> topicToSubscriber = new Int2ObjectHashMap<>();
     private final SubscriberFactory subscriberFactory;
     private final PageCache publisherPageCache;
+    private final SocketMapper socketMapper = new SocketMapper();
 
     public ServiceFactory(final Path pageCachePath)
     {
@@ -45,6 +52,12 @@ public final class ServiceFactory
         topicToSubscriber.put(topicId, subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation()));
     }
 
+    public <T> void registerRemoteSubscriber(
+            final T implementation, final SocketAddress socketAddress)
+    {
+        socketMapper.addAddress(TopicIdCalculator.calculate(implementation.getClass()), socketAddress);
+    }
+
     public Service create()
     {
         final TopicDispatcherRecordHandler topicDispatcher =
@@ -52,18 +65,33 @@ public final class ServiceFactory
 
         final StreamingReader inboundReader =
                 new StreamingReader(subscriberPageCache, topicDispatcher, true, true);
+        final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
         final StreamingReader outboundReader =
-                new StreamingReader(publisherPageCache, new OutputChannel(), true, true);
+                new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true, true);
         return new Service(inboundReader, outboundReader);
     }
 
-    public PageCache getSubscriberPageCache()
+    private static final class SocketMapper implements IntFunction<SocketChannel>
     {
-        return subscriberPageCache;
-    }
+        private final Int2ObjectHashMap<SocketAddress> topicToAddress =
+                new Int2ObjectHashMap<>();
 
-    public PageCache getPublisherPageCache()
-    {
-        return publisherPageCache;
+        @Override
+        public SocketChannel apply(final int topicId)
+        {
+            try
+            {
+                return SocketChannel.open(topicToAddress.get(topicId));
+            }
+            catch (IOException e)
+            {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        void addAddress(final int topicId, final SocketAddress address)
+        {
+            topicToAddress.put(topicId, address);
+        }
     }
 }

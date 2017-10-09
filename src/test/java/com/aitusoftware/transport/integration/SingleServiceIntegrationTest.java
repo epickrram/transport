@@ -46,26 +46,7 @@ public final class SingleServiceIntegrationTest
         final PageCache outputPageCache = PageCache.create(path.resolve(ServiceFactory.PUBLISHER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
         this.latch = new CountDownLatch(1);
 
-        final Subscriber<OrderNotifications> subscriber = new SubscriberFactory().getSubscriber(OrderNotifications.class, new OrderNotifications()
-        {
-            @Override
-            public void limitOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final double price, final int ecnId)
-            {
-                latch.countDown();
-            }
-
-            @Override
-            public void marketOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final int ecnId)
-            {
-                latch.countDown();
-            }
-
-            @Override
-            public void cancelOrder(final CharSequence orderId, final int ecnId)
-            {
-                latch.countDown();
-            }
-        });
+        final Subscriber<OrderNotifications> subscriber = new SubscriberFactory().getSubscriber(OrderNotifications.class, new EventReceiver());
 
         final Int2ObjectHashMap<Subscriber> subscriberMap = new Int2ObjectHashMap<>();
         subscriberMap.put(subscriber.getTopicId(), subscriber);
@@ -91,5 +72,26 @@ public final class SingleServiceIntegrationTest
     {
         executor.shutdownNow();
         assertTrue(service.stop(5, TimeUnit.SECONDS));
+    }
+
+    private class EventReceiver implements OrderNotifications
+    {
+        @Override
+        public void limitOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final double price, final int ecnId)
+        {
+            latch.countDown();
+        }
+
+        @Override
+        public void marketOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final int ecnId)
+        {
+            latch.countDown();
+        }
+
+        @Override
+        public void cancelOrder(final CharSequence orderId, final int ecnId)
+        {
+            latch.countDown();
+        }
     }
 }

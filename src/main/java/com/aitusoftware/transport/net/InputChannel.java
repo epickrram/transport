@@ -8,7 +8,7 @@ public final class InputChannel
 
     public ProcessResult processInput(final PageCache pageCache)
     {
-
+        
         return ProcessResult.IDLE;
     }
 }
