@@ -10,7 +10,7 @@ import static org.junit.Assert.assertThat;
 
 public final class PageTest
 {
-    private final Page page = new Page(SLAB_FACTORY.createSlab(8192), 0);
+    private final Page page = new Page(SLAB_FACTORY.createSlab(8192), 0, null);
 
     @Test
     public void shouldPutAndRetrieveRecord() throws Exception
@@ -48,6 +48,18 @@ public final class PageTest
         assertThat(page.write(data), is(WriteResult.SUCCESS));
         data.clear();
         assertThat(page.write(data), is(WriteResult.NOT_ENOUGH_SPACE));
+    }
+
+    @Test
+    public void shouldNotBeReady() throws Exception
+    {
+        assertThat(Page.isReady(Page.CLAIMED_MARKER), is(false));
+    }
+
+    @Test
+    public void shouldBeReady() throws Exception
+    {
+        assertThat(Page.isReady(Page.CLAIMED_MARKER | Page.READY_MARKER), is(true));
     }
 
     private static long decode(final ByteBuffer source)

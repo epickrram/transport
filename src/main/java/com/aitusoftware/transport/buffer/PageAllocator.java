@@ -61,7 +61,7 @@ public final class PageAllocator
             {
                 buffer.load();
             }
-            return new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber);
+            return new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
         }
         catch (IOException e)
         {

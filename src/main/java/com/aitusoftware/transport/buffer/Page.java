@@ -1,13 +1,17 @@
 package com.aitusoftware.transport.buffer;
 
 import java.nio.ByteBuffer;
+import java.nio.file.Path;
 
 import static com.aitusoftware.transport.buffer.Offsets.toPageOffset;
 
 public final class Page
 {
-    private static final int CLAIMED_MARKER = 0b1000_0000_0000_0000_0000_0000_0000_0000;
-    private static final int READY_MARKER = 0b1100_0000_0000_0000_0000_0000_0000_0000;
+    static final int CLAIMED_MARKER = 0b1000_0000_0000_0000_0000_0000_0000_0000;
+    static final int READY_MARKER = 0b1100_0000_0000_0000_0000_0000_0000_0000;
+    private static final int READY_MARKER_MASK = 0b0100_0000_0000_0000_0000_0000_0000_0000;
+
+    //////////////////////////////////1000_0000_0000_0000_0000_0000_0000_0000
     private static final int MAX_DATA_LENGTH = 0b0100_0000_0000_0000_0000_0000_0000_0000 - 1;
     private static final int RECORD_LENGTH_MASK = 0b0011_1111_1111_1111_1111_1111_1111_1111;
     static final int ERR_MESSAGE_TOO_LARGE = -1;
@@ -19,12 +23,14 @@ public final class Page
     private final Slab slab;
     private final PageHeader pageHeader;
     private final int pageNumber;
+    private final Path pagePath;
 
-    Page(final Slab slab, final int pageNumber)
+    Page(final Slab slab, final int pageNumber, final Path pagePath)
     {
         this.slab = slab;
         pageHeader = new PageHeader(slab);
         this.pageNumber = pageNumber;
+        this.pagePath = pagePath;
     }
 
     public WriteResult write(final ByteBuffer data)
@@ -112,7 +118,7 @@ public final class Page
 
     public static boolean isReady(final int recordHeader)
     {
-        return (recordHeader & READY_MARKER) != 0;
+        return (recordHeader & READY_MARKER_MASK) != 0;
     }
 
     public static int recordLength(final int recordHeader)
@@ -129,7 +135,8 @@ public final class Page
     public String toString()
     {
         return "Page{" +
-                "slab=" + slab +
+                "file=" + pagePath +
+                ", slab=" + slab +
                 ", pageHeader=" + pageHeader +
                 '}';
     }

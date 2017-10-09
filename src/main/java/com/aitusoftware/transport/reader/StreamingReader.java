@@ -64,6 +64,13 @@ public final class StreamingReader
         {
             readFromCurrentPage = true;
             final int recordLength = Page.recordLength(header);
+
+            if (recordLength == 0)
+            {
+                System.out.printf("%s header: %s%n",
+                        Thread.currentThread().getName(), Integer.toBinaryString(header));
+            }
+
             if (zeroCopy)
             {
                 final ByteBuffer slice = page.slice(position, recordLength);

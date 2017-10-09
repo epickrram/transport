@@ -55,21 +55,18 @@ public final class ServiceIntegrationTest
             public void limitOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final double price, final int ecnId)
             {
                 latch.countDown();
-                System.out.println("limitOrder");
             }
 
             @Override
             public void marketOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final int ecnId)
             {
                 latch.countDown();
-                System.out.println("marketOrder");
             }
 
             @Override
             public void cancelOrder(final CharSequence orderId, final int ecnId)
             {
                 latch.countDown();
-                System.out.println("cancelOrder");
             }
         });
 
@@ -83,7 +80,7 @@ public final class ServiceIntegrationTest
     @Test
     public void shouldHandleMessages() throws Exception
     {
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < 20; i++)
         {
             marketDataPublisher.onAsk("USD/EUR", i, 17 * i, 37);
         }
