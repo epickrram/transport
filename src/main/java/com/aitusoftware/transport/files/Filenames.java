@@ -8,6 +8,6 @@ public enum Filenames
 
     public static Path forPageNumber(final int pageNumber, final Path path)
     {
-        return path.resolve(String.format("%1d.trx", pageNumber));
+        return path.resolve(String.format("%018d.trx", pageNumber));
     }
 }

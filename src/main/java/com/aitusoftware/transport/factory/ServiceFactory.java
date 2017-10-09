@@ -14,8 +14,8 @@ import java.nio.file.Path;
 
 public final class ServiceFactory
 {
-    private static final String PUBLISHER_PAGE_CACHE_PATH = "pub";
-    private static final String SUBSCRIBER_PAGE_CACHE_PATH = "sub";
+    public static final String PUBLISHER_PAGE_CACHE_PATH = "pub";
+    public static final String SUBSCRIBER_PAGE_CACHE_PATH = "sub";
 
     private final Path pageCachePath;
     private final PublisherFactory publisherFactory;
@@ -54,5 +54,15 @@ public final class ServiceFactory
         final StreamingReader outboundReader =
                 new StreamingReader(publisherPageCache, new OutputChannel(), true, true);
         return new Service(inboundReader, outboundReader);
+    }
+
+    public PageCache getSubscriberPageCache()
+    {
+        return subscriberPageCache;
+    }
+
+    public PageCache getPublisherPageCache()
+    {
+        return publisherPageCache;
     }
 }

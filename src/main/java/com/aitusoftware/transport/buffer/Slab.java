@@ -54,6 +54,7 @@ public final class Slab
     public void writeOrderedInt(final int offset, final int value)
     {
         intArrayView.setRelease(backingStore, offset, value);
+//        intArrayView.setVolatile(backingStore, offset, value);
     }
 
     // TODO not thread-safe

@@ -18,6 +18,10 @@ public final class TopicDispatcherRecordHandler implements RecordHandler
     @Override
     public void onRecord(final ByteBuffer data, final int pageNumber, final int position)
     {
+        if (data.remaining() < 4)
+        {
+            new RuntimeException(Thread.currentThread().getName()).printStackTrace(System.out);
+        }
         final int topicId = data.getInt();
         final Subscriber subscriber = topicIdToSubscriberMap.get(topicId);
         subscriber.onRecord(data, pageNumber, position);

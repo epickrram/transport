@@ -20,6 +20,7 @@ public final class StreamingReader
     private int position = 0;
     private Page page;
     private ByteBuffer buffer = ByteBuffer.allocateDirect(256);
+    private boolean readFromCurrentPage = false;
 
     public StreamingReader(
             final PageCache pageCache, final RecordHandler recordHandler,
@@ -55,11 +56,13 @@ public final class StreamingReader
                 return false;
             }
             page = pageCache.getPage(pageNumber);
+            readFromCurrentPage = false;
         }
 
         final int header = page.header(position);
         if (Page.isReady(header))
         {
+            readFromCurrentPage = true;
             final int recordLength = Page.recordLength(header);
             if (zeroCopy)
             {
@@ -88,9 +91,13 @@ public final class StreamingReader
             }
             return true;
         }
-        page = null;
-        pageNumber++;
-        position = 0;
+        if (readFromCurrentPage)
+        {
+            page = null;
+            pageNumber++;
+            position = 0;
+        }
+
         return pageCache.isPageAvailable(pageNumber);
     }
 
