@@ -5,4 +5,6 @@ import com.aitusoftware.transport.reader.RecordHandler;
 public interface Subscriber<T> extends RecordHandler
 {
     int getTopicId();
+
+    long getMessageCount();
 }

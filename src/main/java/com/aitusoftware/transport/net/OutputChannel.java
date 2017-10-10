@@ -43,7 +43,6 @@ public final class OutputChannel implements RecordHandler
                     return;
                 }
                 channel.write(srcs);
-                System.out.println("Wrote to topic " + topicId);
             }
             catch (RuntimeException | IOException e)
             {
@@ -51,5 +50,6 @@ public final class OutputChannel implements RecordHandler
                 channelMapper.reconnectChannel(topicId);
             }
         }
+
     }
 }

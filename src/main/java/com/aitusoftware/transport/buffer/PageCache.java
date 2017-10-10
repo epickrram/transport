@@ -70,6 +70,7 @@ public final class PageCache
             int pageNumber = page.getPageNumber();
             while (!Thread.currentThread().isInterrupted())
             {
+                page.tryWriteEof();
                 if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) > pageNumber &&
                         ((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() == pageNumber)
                 {

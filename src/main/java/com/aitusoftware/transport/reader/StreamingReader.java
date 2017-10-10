@@ -8,6 +8,7 @@ import com.aitusoftware.transport.threads.PausingIdler;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class StreamingReader
 {
@@ -16,11 +17,12 @@ public final class StreamingReader
     private final boolean tail;
     private final boolean zeroCopy;
     private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
+    private final AtomicLong messageCount = new AtomicLong();
+    private long localMessageCount;
     private int pageNumber = 0;
     private int position = 0;
     private Page page;
     private ByteBuffer buffer = ByteBuffer.allocateDirect(256);
-    private boolean readFromCurrentPage = false;
 
     public StreamingReader(
             final PageCache pageCache, final RecordHandler recordHandler,
@@ -56,20 +58,12 @@ public final class StreamingReader
                 return false;
             }
             page = pageCache.getPage(pageNumber);
-            readFromCurrentPage = false;
         }
 
         final int header = page.header(position);
         if (Page.isReady(header))
         {
-            readFromCurrentPage = true;
             final int recordLength = Page.recordLength(header);
-
-            if (recordLength == 0)
-            {
-                System.out.printf("%s header: %s%n",
-                        Thread.currentThread().getName(), Integer.toBinaryString(header));
-            }
 
             if (zeroCopy)
             {
@@ -87,25 +81,37 @@ public final class StreamingReader
                 page.read(position, buffer);
                 recordHandler.onRecord(buffer, pageNumber, position);
             }
+            localMessageCount++;
+            messageCount.lazySet(localMessageCount);
             position += recordLength;
             position = Offsets.getAlignedPosition(position);
-
             if (position >= pageCache.getPageSize())
             {
-                page = null;
-                pageNumber++;
-                position = 0;
+                advancePage();
             }
             return true;
         }
-        if (readFromCurrentPage)
+        else if(Page.isEof(header))
         {
-            page = null;
-            pageNumber++;
-            position = 0;
+            advancePage();
         }
-
+        else if(!tail)
+        {
+            return false;
+        }
         return pageCache.isPageAvailable(pageNumber);
+    }
+
+    private void advancePage()
+    {
+        page = null;
+        pageNumber++;
+        position = 0;
+    }
+
+    public long getMessageCount()
+    {
+        return messageCount.get();
     }
 
     private static int toNextPowerOfTwo(final int input)

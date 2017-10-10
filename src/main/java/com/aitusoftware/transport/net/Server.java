@@ -138,6 +138,7 @@ public final class Server
             }
             catch (IOException e)
             {
+                e.printStackTrace();
                 // TODO emit event
             }
         }

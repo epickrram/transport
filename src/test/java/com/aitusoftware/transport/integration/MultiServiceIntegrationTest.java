@@ -32,6 +32,8 @@ public final class MultiServiceIntegrationTest
     private MarketData marketDataPublisher;
     private Service orderGatewayService;
     private TraderBot traderBot;
+    private ServiceFactory orderGatewayServiceFactory;
+    private ServiceFactory traderBotServiceFactory;
 
     @Before
     public void setUp() throws Exception
@@ -39,7 +41,7 @@ public final class MultiServiceIntegrationTest
         final Path traderBotPath = Fixtures.tempDirectory();
         final Path orderGatewayPath = Fixtures.tempDirectory();
 
-        final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath);
+        traderBotServiceFactory = new ServiceFactory(traderBotPath);
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
         traderBotServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, TRADER_BOT_LISTEN_ADDR));
@@ -50,7 +52,7 @@ public final class MultiServiceIntegrationTest
         traderBotServiceFactory.registerRemoteListenerTo(OrderNotifications.class, ORDER_GATEWAY_CONNECT_ADDR);
         this.traderBotService = traderBotServiceFactory.create();
 
-        final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath);
+        orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath);
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
         orderGatewayServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, ORDER_GATEWAY_LISTEN_ADDR));

@@ -8,12 +8,13 @@ import static com.aitusoftware.transport.buffer.Offsets.toPageOffset;
 public final class Page
 {
     static final int CLAIMED_MARKER = 0b1000_0000_0000_0000_0000_0000_0000_0000;
-    static final int READY_MARKER = 0b1100_0000_0000_0000_0000_0000_0000_0000;
+    public static final int READY_MARKER = 0b0100_0000_0000_0000_0000_0000_0000_0000;
+    private static final int EOF_MARKER = 0b0010_0000_0000_0000_0000_0000_0000_0000;
     private static final int READY_MARKER_MASK = 0b0100_0000_0000_0000_0000_0000_0000_0000;
 
     //////////////////////////////////1000_0000_0000_0000_0000_0000_0000_0000
-    private static final int MAX_DATA_LENGTH = 0b0100_0000_0000_0000_0000_0000_0000_0000 - 1;
-    private static final int RECORD_LENGTH_MASK = 0b0011_1111_1111_1111_1111_1111_1111_1111;
+    private static final int MAX_DATA_LENGTH = 0b0010_0000_0000_0000_0000_0000_0000_0000 - 1;
+    private static final int RECORD_LENGTH_MASK = 0b0001_1111_1111_1111_1111_1111_1111_1111;
     static final int ERR_MESSAGE_TOO_LARGE = -1;
     static final int ERR_NOT_ENOUGH_SPACE = -2;
 
@@ -81,6 +82,12 @@ public final class Page
         }
     }
 
+    void tryWriteEof()
+    {
+        final int position = pageHeader.nextAvailableWritePosition();
+        slab.compareAndSetInt(toPageOffset(position), 0, EOF_MARKER);
+    }
+
     public void read(final int position, final ByteBuffer buffer)
     {
         slab.copyInto(toPageOffset(position) + Record.HEADER_LENGTH, buffer);
@@ -120,6 +127,11 @@ public final class Page
     public static boolean isReady(final int recordHeader)
     {
         return (recordHeader & READY_MARKER_MASK) != 0;
+    }
+
+    public static boolean isEof(final int header)
+    {
+        return (header & EOF_MARKER) != 0;
     }
 
     public static int recordLength(final int recordHeader)

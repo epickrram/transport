@@ -3,6 +3,7 @@ package com.aitusoftware.transport.factory;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.messaging.TopicDispatcherRecordHandler;
 import com.aitusoftware.transport.messaging.TopicIdCalculator;
+import com.aitusoftware.transport.messaging.proxy.AbstractPublisher;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
@@ -17,6 +18,9 @@ import java.io.UncheckedIOException;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
 
 public final class ServiceFactory
@@ -33,6 +37,9 @@ public final class ServiceFactory
     private final SubscriberFactory subscriberFactory;
     private final PageCache publisherPageCache;
     private final SocketMapper socketMapper = new SocketMapper();
+    private final List<AbstractPublisher> publishers = new ArrayList<>();
+    private final List<Subscriber<?>> subscribers = new ArrayList<>();
+    private final List<StreamingReader> readers = new ArrayList<>();
 
     public ServiceFactory(final Path pageCachePath)
     {
@@ -45,13 +52,17 @@ public final class ServiceFactory
 
     public <T> T createPublisher(final Class<T> topicDefinition)
     {
-        return publisherFactory.getPublisherProxy(topicDefinition);
+        final T publisher = publisherFactory.getPublisherProxy(topicDefinition);
+        publishers.add((AbstractPublisher) publisher);
+        return publisher;
     }
 
     public <T> void registerSubscriber(final SubscriberDefinition<T> definition)
     {
         final int topicId = TopicIdCalculator.calculate(definition.getTopic());
-        topicToSubscriber.put(topicId, subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation()));
+        final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation());
+        subscribers.add(subscriber);
+        topicToSubscriber.put(topicId, subscriber);
         if (definition.getSocketAddress() != null)
         {
             topicToListenerAddress.put(topicId, definition.getSocketAddress());
@@ -74,8 +85,25 @@ public final class ServiceFactory
         final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
         final StreamingReader outboundReader =
                 new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true, true);
+        readers.add(inboundReader);
+        readers.add(outboundReader);
         final Server server = new Server(topicToListenerAddress, subscriberPageCache);
         return new Service(inboundReader, outboundReader, server);
+    }
+
+    public void publishers(final Consumer<AbstractPublisher> consumer)
+    {
+        publishers.forEach(consumer);
+    }
+
+    public void subscribers(final Consumer<Subscriber<?>> consumer)
+    {
+        subscribers.forEach(consumer);
+    }
+
+    public void readers(final Consumer<StreamingReader> consumer)
+    {
+        readers.forEach(consumer);
     }
 
     private static final class SocketMapper implements IntFunction<SocketChannel>
