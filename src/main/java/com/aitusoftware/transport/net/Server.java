@@ -45,6 +45,10 @@ public final class Server
         {
             final ServerSocketChannel channel = channelMap.
                     computeIfAbsent(listenAddresses.get(topicId), addr -> {
+                        if (addr == null)
+                        {
+                            return null;
+                        }
                         try
                         {
                             final ServerSocketChannel serverChannel = ServerSocketChannel.open();

@@ -31,17 +31,22 @@ public final class OutputChannel implements RecordHandler
         // TODO should be able to determine length from record header
         lengthBuffer.putInt(0, data.remaining());
 
-        final SocketChannel channel = channelMapper.forTopic(topicId);
-        while (data.remaining() != 0 || lengthBuffer.remaining() != 0)
+        while ((data.remaining() != 0 || lengthBuffer.remaining() != 0) &&
+                !Thread.currentThread().isInterrupted())
         {
             try
             {
+                final SocketChannel channel = channelMapper.forTopic(topicId);
+                if (channel == null)
+                {
+                    // TODO should be handled by reconnect logic
+                    return;
+                }
                 channel.write(srcs);
                 System.out.println("Wrote to topic " + topicId);
             }
-            catch (IOException e)
+            catch (RuntimeException | IOException e)
             {
-                e.printStackTrace();
                 // TODO buffer data
                 channelMapper.reconnectChannel(topicId);
             }
