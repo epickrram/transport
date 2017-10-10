@@ -37,9 +37,11 @@ public final class OutputChannel implements RecordHandler
             try
             {
                 channel.write(srcs);
+                System.out.println("Wrote to topic " + topicId);
             }
             catch (IOException e)
             {
+                e.printStackTrace();
                 // TODO buffer data
                 channelMapper.reconnectChannel(topicId);
             }

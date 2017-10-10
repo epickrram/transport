@@ -16,8 +16,10 @@ public final class TraderBot implements MarketData, MarketNews, TradeNotificatio
     @Override
     public void onAsk(final CharSequence symbol, final long quantity, final double price, final int sourceId)
     {
+        System.out.println("onAsk");
         if (updateCount++ > 10)
         {
+            System.out.println("send limitOrder");
             orderNotifications.limitOrder(symbol, "order-" + updateCount, true, 17L, 54.5d, 11);
             updateCount = 0;
         }

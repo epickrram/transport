@@ -17,6 +17,8 @@ public final class WritableRecord
     public void commit()
     {
         page.writeReadyHeader(headerOffset, recordLength);
+//        System.out.printf("%s wrote %d at %d to %s%n",
+//                Thread.currentThread(), recordLength, headerOffset, page);
     }
 
     void set(final ByteBuffer buffer, final Page page, final int headerOffset)

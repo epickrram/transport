@@ -70,8 +70,8 @@ public final class SingleServiceIntegrationTest
     @After
     public void tearDown() throws Exception
     {
-        executor.shutdownNow();
         assertTrue(service.stop(5, TimeUnit.SECONDS));
+        executor.shutdownNow();
     }
 
     private class EventReceiver implements OrderNotifications

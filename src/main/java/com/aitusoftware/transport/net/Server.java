@@ -12,8 +12,10 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -37,22 +39,28 @@ public final class Server
 
     public void start()
     {
+        final Map<SocketAddress, ServerSocketChannel> channelMap = new HashMap<>();
         int ptr = 0;
-        try
+        for (final int topicId : listenAddresses.keySet())
         {
-            for (final int topicId : listenAddresses.keySet())
-            {
-                final ServerSocketChannel channel = ServerSocketChannel.open();
-                channel.bind(listenAddresses.get(topicId));
-                channel.configureBlocking(false);
-                serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
-                ptr++;
-            }
+            final ServerSocketChannel channel = channelMap.
+                    computeIfAbsent(listenAddresses.get(topicId), addr -> {
+                        try
+                        {
+                            final ServerSocketChannel serverChannel = ServerSocketChannel.open();
+                            serverChannel.bind(addr);
+                            serverChannel.configureBlocking(false);
+                            return serverChannel;
+                        }
+                        catch (IOException e)
+                        {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+            serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
+            ptr++;
         }
-        catch (IOException e)
-        {
-            throw new UncheckedIOException(e);
-        }
+
         listenerStarted.countDown();
 
         while (!Thread.currentThread().isInterrupted())

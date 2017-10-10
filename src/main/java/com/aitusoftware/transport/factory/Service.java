@@ -2,13 +2,12 @@ package com.aitusoftware.transport.factory;
 
 import com.aitusoftware.transport.net.Server;
 import com.aitusoftware.transport.reader.StreamingReader;
-import org.agrona.collections.Int2ObjectHashMap;
 
-import java.net.SocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.aitusoftware.transport.threads.Threads.daemonFactory;
+import static com.aitusoftware.transport.threads.Threads.loggingRunnable;
 import static com.aitusoftware.transport.threads.Threads.namedThread;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 
@@ -30,9 +29,9 @@ public final class Service
 
     public void start()
     {
-        executor.submit(namedThread("outbound-message-processor", outboundReader::process));
-        executor.submit(namedThread("inbound-message-dispatcher", inboundReader::process));
-        executor.submit(namedThread("request-server", server::start));
+        executor.submit(loggingRunnable(namedThread("outbound-message-processor", outboundReader::process)));
+        executor.submit(loggingRunnable(namedThread("inbound-message-dispatcher", inboundReader::process)));
+        executor.submit(loggingRunnable(namedThread("request-server", server::start)));
 
         server.waitForStartup(5, TimeUnit.SECONDS);
     }

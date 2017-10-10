@@ -32,4 +32,18 @@ public final class Threads
             delegate.run();
         };
     }
+
+    public static Runnable loggingRunnable(final Runnable delegate)
+    {
+        return () -> {
+            try
+            {
+                delegate.run();
+            }
+            catch (Throwable t)
+            {
+                t.printStackTrace();
+            }
+        };
+    }
 }
