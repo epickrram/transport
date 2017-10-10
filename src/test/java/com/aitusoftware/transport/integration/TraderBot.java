@@ -1,8 +1,11 @@
 package com.aitusoftware.transport.integration;
 
+import java.util.concurrent.CountDownLatch;
+
 public final class TraderBot implements MarketData, MarketNews, TradeNotifications
 {
     private final OrderNotifications orderNotifications;
+    private final CountDownLatch orderAcceptedLatch = new CountDownLatch(1);
     private int updateCount = 0;
 
     TraderBot(final OrderNotifications orderNotifications)
@@ -46,12 +49,16 @@ public final class TraderBot implements MarketData, MarketNews, TradeNotificatio
     public void onOrderAccepted(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long matchedQuantity,
                                 final long remainingQuantity, final double price, final int ecnId)
     {
-        System.out.printf("Order placed: %s%n", orderId);
+        orderAcceptedLatch.countDown();
     }
 
     @Override
     public void onOrderRejected(final CharSequence symbol, final CharSequence orderId, final int ecnId, final int rejectionReason)
     {
-        System.out.printf("Order rejected: %s%n", orderId);
+    }
+
+    CountDownLatch getOrderAcceptedLatch()
+    {
+        return orderAcceptedLatch;
     }
 }

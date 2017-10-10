@@ -63,6 +63,12 @@ public final class ServiceFactory
         socketMapper.addAddress(TopicIdCalculator.calculate(implementation.getClass()), socketAddress);
     }
 
+    public <T> void registerRemoteListenerTo(
+            final Class<T> implementation, final SocketAddress socketAddress)
+    {
+        socketMapper.addAddress(TopicIdCalculator.calculate(implementation), socketAddress);
+    }
+
     public Service create()
     {
         final TopicDispatcherRecordHandler topicDispatcher =
