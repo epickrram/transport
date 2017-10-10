@@ -1,14 +1,21 @@
 package com.aitusoftware.transport.net;
 
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.buffer.WritableRecord;
+import com.aitusoftware.transport.threads.Idler;
+import com.aitusoftware.transport.threads.PausingIdler;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public final class Server
 {
@@ -17,6 +24,8 @@ public final class Server
     private final ServerTopicChannel[] serverSocketChannels;
     // TODO reduce garbage
     private final List<TopicChannel> channels = new LinkedList<>();
+    private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
+    private final CountDownLatch listenerStarted = new CountDownLatch(1);
 
     public Server(final Int2ObjectHashMap<SocketAddress> listenAddresses,
                   final PageCache subscriberPageCache)
@@ -26,20 +35,88 @@ public final class Server
         serverSocketChannels = new ServerTopicChannel[listenAddresses.size()];
     }
 
-    void start() throws IOException
+    public void start()
     {
         int ptr = 0;
-        for (final int topicId : listenAddresses.keySet())
+        try
         {
-            final ServerSocketChannel channel = ServerSocketChannel.open();
-            channel.bind(listenAddresses.get(topicId));
-            channel.configureBlocking(false);
-            serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
-            ptr++;
+            for (final int topicId : listenAddresses.keySet())
+            {
+                final ServerSocketChannel channel = ServerSocketChannel.open();
+                channel.bind(listenAddresses.get(topicId));
+                channel.configureBlocking(false);
+                serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
+                ptr++;
+            }
         }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
+        listenerStarted.countDown();
+
         while (!Thread.currentThread().isInterrupted())
         {
-            for (int i = 0; i < serverSocketChannels.length; i++)
+            acceptNewConnections();
+
+            boolean dataProcessed = false;
+
+            for (final TopicChannel topicChannel : channels)
+            {
+                try
+                {
+                    topicChannel.readLength();
+                    if (topicChannel.isReady())
+                    {
+                        dataProcessed = true;
+                        final WritableRecord record = subscriberPageCache.acquireRecordBuffer(topicChannel.getLength());
+                        try
+                        {
+                            final ByteBuffer buffer = record.buffer();
+                            while (buffer.remaining() != 0)
+                            {
+                                topicChannel.channel.read(buffer);
+                            }
+                        }
+                        finally
+                        {
+                            record.commit();
+                        }
+                    }
+                }
+                catch (IOException e)
+                {
+                    channels.remove(topicChannel);
+                }
+            }
+
+            if (!dataProcessed)
+            {
+                idler.idle();
+            }
+        }
+    }
+
+    public void waitForStartup(final long duration, final TimeUnit unit)
+    {
+        try
+        {
+            if (!listenerStarted.await(duration, unit))
+            {
+                throw new IllegalStateException("Server sockets not started");
+            }
+        }
+        catch (InterruptedException e)
+        {
+            throw new RuntimeException("Interrupted while waiting for startup", e);
+        }
+    }
+
+    private void acceptNewConnections()
+    {
+        for (int i = 0; i < serverSocketChannels.length; i++)
+        {
+            try
             {
                 final SocketChannel accepted = serverSocketChannels[i].channel.accept();
                 if (accepted != null)
@@ -47,10 +124,9 @@ public final class Server
                     channels.add(new TopicChannel(accepted, serverSocketChannels[i].topicId));
                 }
             }
-
-            for (final TopicChannel topicChannel : channels)
+            catch (IOException e)
             {
-                // read length, claim buffer
+                // TODO emit event
             }
         }
     }
@@ -59,11 +135,36 @@ public final class Server
     {
         private final SocketChannel channel;
         private final int topicId;
+        private final ByteBuffer lengthBuffer = ByteBuffer.allocateDirect(4);
 
         TopicChannel(final SocketChannel channel, final int topicId)
         {
             this.channel = channel;
             this.topicId = topicId;
+        }
+
+        boolean isReady()
+        {
+            return lengthBuffer.position() == 4;
+        }
+
+        int getLength()
+        {
+            final int length = lengthBuffer.flip().getInt();
+            lengthBuffer.clear();
+            return length;
+        }
+
+        void readLength()
+        {
+            try
+            {
+                channel.read(lengthBuffer);
+            }
+            catch (IOException e)
+            {
+                throw new UncheckedIOException(e);
+            }
         }
     }
 

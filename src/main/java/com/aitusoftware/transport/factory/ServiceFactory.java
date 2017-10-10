@@ -7,6 +7,7 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.net.OutputChannel;
+import com.aitusoftware.transport.net.Server;
 import com.aitusoftware.transport.net.TopicToChannelMapper;
 import com.aitusoftware.transport.reader.StreamingReader;
 import org.agrona.collections.Int2ObjectHashMap;
@@ -58,12 +59,6 @@ public final class ServiceFactory
     }
 
     public <T> void registerRemoteListenerTo(
-            final T implementation, final SocketAddress socketAddress)
-    {
-        socketMapper.addAddress(TopicIdCalculator.calculate(implementation.getClass()), socketAddress);
-    }
-
-    public <T> void registerRemoteListenerTo(
             final Class<T> implementation, final SocketAddress socketAddress)
     {
         socketMapper.addAddress(TopicIdCalculator.calculate(implementation), socketAddress);
@@ -79,7 +74,8 @@ public final class ServiceFactory
         final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
         final StreamingReader outboundReader =
                 new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true, true);
-        return new Service(inboundReader, outboundReader);
+        final Server server = new Server(topicToListenerAddress, subscriberPageCache);
+        return new Service(inboundReader, outboundReader, server);
     }
 
     private static final class SocketMapper implements IntFunction<SocketChannel>
@@ -92,7 +88,9 @@ public final class ServiceFactory
         {
             try
             {
-                return SocketChannel.open(topicToAddress.get(topicId));
+                final SocketChannel channel = SocketChannel.open(topicToAddress.get(topicId));
+                channel.configureBlocking(false);
+                return channel;
             }
             catch (IOException e)
             {
