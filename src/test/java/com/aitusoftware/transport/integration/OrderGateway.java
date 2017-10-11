@@ -14,7 +14,6 @@ public final class OrderGateway implements OrderNotifications
             final CharSequence symbol, final CharSequence orderId,
             final boolean isBid, final long quantity, final double price, final int ecnId)
     {
-        System.out.println("limitOrder");
         tradeNotifications.onOrderAccepted(symbol, orderId, isBid, quantity,
                 0, price, ecnId);
     }
@@ -24,7 +23,6 @@ public final class OrderGateway implements OrderNotifications
             final CharSequence symbol, final CharSequence orderId,
             final boolean isBid, final long quantity, final int ecnId)
     {
-        System.out.println("marketOrder");
         tradeNotifications.onOrderAccepted(symbol, orderId, isBid, quantity,
                 0, Double.MIN_VALUE, ecnId);
     }

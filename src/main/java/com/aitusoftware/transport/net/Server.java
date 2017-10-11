@@ -44,8 +44,6 @@ public final class Server
         {
             final ServerSocketChannel channel = socketFactory.apply(topicId);
 
-            System.out.printf("Listening to topic %d on %s%n", topicId, channel);
-
             serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
             ptr++;
         }
@@ -65,20 +63,15 @@ public final class Server
                     topicChannel.readLength();
                     if (topicChannel.isReady())
                     {
-                        System.out.printf("Received data on %s%n", topicChannel.channel);
                         dataProcessed = true;
                         final WritableRecord record = subscriberPageCache.acquireRecordBuffer(topicChannel.getLength());
                         try
                         {
                             final ByteBuffer buffer = record.buffer();
-                            final int position = buffer.position();
                             while (buffer.remaining() != 0)
                             {
                                 topicChannel.channel.read(buffer);
                             }
-
-                            System.out.printf("Wrote to topic %d from %s%n",
-                                    buffer.getInt(position), topicChannel.channel);
                         }
                         finally
                         {
@@ -86,7 +79,7 @@ public final class Server
                         }
                     }
                 }
-                catch (IOException e)
+                catch (UncheckedIOException | IOException e)
                 {
                     channels.remove(topicChannel);
                 }
@@ -124,7 +117,6 @@ public final class Server
                 if (accepted != null)
                 {
                     channels.add(new TopicChannel(accepted));
-                    System.out.printf("new connection %s%n", accepted);
                 }
             }
             catch (IOException e)

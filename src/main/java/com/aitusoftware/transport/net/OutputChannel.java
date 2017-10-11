@@ -43,7 +43,6 @@ public final class OutputChannel implements RecordHandler
                     return;
                 }
                 channel.write(srcs);
-                System.out.printf("Wrote to topic %d on %s%n", topicId, channel);
             }
             catch (RuntimeException | IOException e)
             {
