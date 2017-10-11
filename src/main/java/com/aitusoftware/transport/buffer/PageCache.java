@@ -1,12 +1,11 @@
 package com.aitusoftware.transport.buffer;
 
 import com.aitusoftware.transport.files.Directories;
-import com.aitusoftware.transport.files.Filenames;
 
+import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class PageCache
@@ -36,17 +35,19 @@ public final class PageCache
     private final PageAllocator allocator;
     private final Path path;
     private final int pageSize;
+    private final PageIndex pageIndex;
     private volatile Page currentPage;
     private volatile int currentPageNumber;
 
-    private PageCache(final int pageSize, final Path path)
+    private PageCache(final int pageSize, final Path path, final PageIndex pageIndex)
     {
         // TODO should handle initialisation from existing file-system resources
         this.path = path;
-        allocator = new PageAllocator(this.path, pageSize);
+        allocator = new PageAllocator(this.path, pageSize, pageIndex);
         CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(INITIAL_PAGE_NUMBER));
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
         this.pageSize = pageSize;
+        this.pageIndex = pageIndex;
     }
 
     public WritableRecord acquireRecordBuffer(final int recordLength)
@@ -115,8 +116,7 @@ public final class PageCache
 
     public boolean isPageAvailable(final int pageNumber)
     {
-        // optimisation - cache file names
-        return Files.exists(Filenames.forPageNumber(pageNumber, path));
+        return pageIndex.isPageCreated(pageNumber);
     }
 
     public Page getPage(final int pageNumber)
@@ -130,10 +130,11 @@ public final class PageCache
         return pageSize;
     }
 
-    public static PageCache create(final Path path, final int pageSize)
+    public static PageCache create(final Path path, final int pageSize) throws IOException
     {
         Directories.ensureDirectoryExists(path);
+        final PageIndex pageIndex = PageIndex.forPageCache(path);
 
-        return new PageCache(pageSize, path);
+        return new PageCache(pageSize, path, pageIndex);
     }
 }

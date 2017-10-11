@@ -2,6 +2,7 @@ package com.aitusoftware.transport.reader;
 
 import com.aitusoftware.transport.buffer.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -14,8 +15,14 @@ public class StreamingReaderTest
 {
     private static final int MESSAGE_COUNT = 500;
     private final ByteBuffer message = ByteBuffer.allocate(337);
-    private final PageCache pageCache = PageCache.create(Fixtures.tempDirectory(), 4096);
     private final CapturingRecordHandler handler = new CapturingRecordHandler();
+    private PageCache pageCache;
+
+    @Before
+    public void setUp() throws Exception
+    {
+        pageCache = PageCache.create(Fixtures.tempDirectory(), 4096);
+    }
 
     @Test
     public void shouldReadAllEntriesWithBufferCopy() throws Exception

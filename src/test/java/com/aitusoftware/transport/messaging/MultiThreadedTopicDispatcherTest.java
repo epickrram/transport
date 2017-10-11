@@ -27,7 +27,7 @@ public final class MultiThreadedTopicDispatcherTest
     private static final int NUMBER_OF_TASKS = 50;
     private static final int NUMBER_OF_ITERATIONS = 20;
     private final Path tempDir = Fixtures.tempDirectory();
-    private final PageCache pageCache = PageCache.create(tempDir, 4096);
+    private PageCache pageCache;
     private final PublisherFactory factory = new PublisherFactory(pageCache);
     private final SubscriberFactory subscriberFactory = new SubscriberFactory();
     private ExecutorService executorService;
@@ -35,6 +35,7 @@ public final class MultiThreadedTopicDispatcherTest
     @Before
     public void before() throws Exception
     {
+        pageCache = PageCache.create(tempDir, 4096);
         executorService = newFixedThreadPool(2);
     }
 

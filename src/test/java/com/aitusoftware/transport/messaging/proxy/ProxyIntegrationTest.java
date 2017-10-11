@@ -5,6 +5,7 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.messaging.TestTopic;
 import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -18,9 +19,16 @@ import static org.junit.Assert.assertThat;
 public final class ProxyIntegrationTest
 {
     private final Path tempDir = Fixtures.tempDirectory();
-    private final PageCache pageCache = PageCache.create(tempDir, 256);
-    private final PublisherFactory factory = new PublisherFactory(pageCache);
+    private PageCache pageCache;
+    private PublisherFactory factory;
     private final SubscriberFactory subscriberFactory = new SubscriberFactory();
+
+    @Before
+    public void setUp() throws Exception
+    {
+        pageCache = PageCache.create(tempDir, 256);
+        factory = new PublisherFactory(pageCache);
+    }
 
     @Test
     public void shouldLoadPublisher() throws Exception

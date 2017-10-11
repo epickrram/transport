@@ -1,5 +1,6 @@
 package com.aitusoftware.transport.buffer;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -17,8 +18,14 @@ public class PageCacheTest
     private static final int MESSAGE_COUNT = 128;
     private static final int PAGE_COUNT = 128 / 23;
 
-    private final PageCache pageCache = PageCache.create(Fixtures.tempDirectory(), PAGE_SIZE);
     private final ByteBuffer message = ByteBuffer.allocate(MESSAGE_SIZE);
+    private PageCache pageCache;
+
+    @Before
+    public void setUp() throws Exception
+    {
+        pageCache = PageCache.create(Fixtures.tempDirectory(), PAGE_SIZE);
+    }
 
     @Test
     public void shouldAppendDataOverSeveralPages() throws Exception

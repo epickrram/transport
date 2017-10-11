@@ -1,11 +1,12 @@
 package com.aitusoftware.transport.buffer;
 
+import com.aitusoftware.transport.files.Buffers;
 import com.aitusoftware.transport.files.Filenames;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UncheckedIOException;
-import java.nio.MappedByteBuffer;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -19,11 +20,13 @@ public final class PageAllocator
     private final boolean loadPageIntoMemory = false;
     private final Path path;
     private final int pageSize;
+    private final PageIndex pageIndex;
 
-    public PageAllocator(final Path path, final int pageSize)
+    public PageAllocator(final Path path, final int pageSize, final PageIndex pageIndex)
     {
         this.path = path;
         this.pageSize = pageSize;
+        this.pageIndex = pageIndex;
     }
 
     Page safelyAllocatePage(final int pageNumber)
@@ -36,6 +39,7 @@ public final class PageAllocator
             {
                 FileChannel.open(pagePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
                 new RandomAccessFile(pagePath.toFile(), "rw").setLength(pageSize + PageHeader.HEADER_SIZE);
+                pageIndex.onPageCreated(pageNumber);
             }
             catch (IOException e)
             {
@@ -55,12 +59,7 @@ public final class PageAllocator
         final Path pagePath = Filenames.forPageNumber(pageNumber, path);
         try
         {
-            final FileChannel channel = FileChannel.open(pagePath, StandardOpenOption.WRITE, StandardOpenOption.READ);
-            final MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_WRITE, 0, pageSize + PageHeader.HEADER_SIZE);
-            if (loadPageIntoMemory)
-            {
-                buffer.load();
-            }
+            final ByteBuffer buffer = Buffers.map(pagePath, false, pageSize + PageHeader.HEADER_SIZE);
             return new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
         }
         catch (IOException e)

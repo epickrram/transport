@@ -7,6 +7,7 @@ import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.reader.StreamingReader;
 import org.agrona.collections.Int2ObjectHashMap;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.file.Path;
@@ -18,9 +19,16 @@ import static org.junit.Assert.assertThat;
 public final class TopicDispatcherRecordHandlerTest
 {
     private final Path tempDir = Fixtures.tempDirectory();
-    private final PageCache pageCache = PageCache.create(tempDir, 4096);
-    private final PublisherFactory factory = new PublisherFactory(pageCache);
     private final SubscriberFactory subscriberFactory = new SubscriberFactory();
+    private PublisherFactory factory;
+    private PageCache pageCache;
+
+    @Before
+    public void setUp() throws Exception
+    {
+        pageCache = PageCache.create(tempDir, 4096);
+        factory = new PublisherFactory(pageCache);
+    }
 
     @Test
     public void shouldDispatchMessages() throws Exception

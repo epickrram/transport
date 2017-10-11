@@ -44,7 +44,7 @@ public final class ServiceFactory
     private final List<StreamingReader> readers = new ArrayList<>();
     private final ServerSocketFactory socketFactory;
 
-    public ServiceFactory(final Path pageCachePath, final ServerSocketFactory socketFactory)
+    public ServiceFactory(final Path pageCachePath, final ServerSocketFactory socketFactory) throws IOException
     {
         this.pageCachePath = pageCachePath;
         publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
