@@ -8,16 +8,16 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Comparator;
 
-public final class PageIndex
+final class PageIndex
 {
-    private static final int SLOTS = 128;
+    static final int SLOTS = 128;
     private static final int SLOT_MASK = SLOTS - 1;
     private static final int SLOT_SIZE = 4;
 
     private final Slab slab;
     private final Path path;
 
-    public static PageIndex forPageCache(final Path path) throws IOException
+    static PageIndex forPageCache(final Path path) throws IOException
     {
         final PageIndex pageIndex = new PageIndex(SlabFactory.SLAB_FACTORY.
                 createSlab(Buffers.map(
@@ -60,6 +60,26 @@ public final class PageIndex
     {
         final int offset = toOffset(pageNumber);
         return slab.getIntVolatile(offset) == pageNumber;
+    }
+
+    boolean isLessThanLowestTrackedPageNumber(final int pageNumber)
+    {
+        int min = Integer.MAX_VALUE;
+        for (int i = 0; i < SLOTS; i++)
+        {
+            min = Math.min(min, slab.getIntVolatile(toOffset(i)));
+        }
+        return pageNumber < min;
+    }
+
+    int getHighestPageNumber()
+    {
+        int max = -1;
+        for (int i = 0; i < SLOTS; i++)
+        {
+            max = Math.max(max, slab.getIntVolatile(toOffset(i)));
+        }
+        return max;
     }
 
     private static int toOffset(final int pageNumber)
