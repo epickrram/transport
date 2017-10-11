@@ -4,24 +4,23 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.WritableRecord;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.PausingIdler;
-import org.agrona.collections.Int2ObjectHashMap;
+import org.agrona.collections.IntHashSet;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntFunction;
 
 public final class Server
 {
-    private final Int2ObjectHashMap<SocketAddress> listenAddresses;
+    private final IntHashSet subscriberTopicIds;
+    private final IntFunction<ServerSocketChannel> socketFactory;
     private final PageCache subscriberPageCache;
     private final ServerTopicChannel[] serverSocketChannels;
     // TODO reduce garbage
@@ -29,38 +28,24 @@ public final class Server
     private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
     private final CountDownLatch listenerStarted = new CountDownLatch(1);
 
-    public Server(final Int2ObjectHashMap<SocketAddress> listenAddresses,
+    public Server(final IntHashSet subscriberTopicIds, final IntFunction<ServerSocketChannel> socketFactory,
                   final PageCache subscriberPageCache)
     {
-        this.listenAddresses = listenAddresses;
+        this.subscriberTopicIds = subscriberTopicIds;
+        this.socketFactory = socketFactory;
         this.subscriberPageCache = subscriberPageCache;
-        serverSocketChannels = new ServerTopicChannel[listenAddresses.size()];
+        serverSocketChannels = new ServerTopicChannel[subscriberTopicIds.size()];
     }
 
     public void start()
     {
-        final Map<SocketAddress, ServerSocketChannel> channelMap = new HashMap<>();
         int ptr = 0;
-        for (final int topicId : listenAddresses.keySet())
+        for (final int topicId : subscriberTopicIds)
         {
-            final ServerSocketChannel channel = channelMap.
-                    computeIfAbsent(listenAddresses.get(topicId), addr -> {
-                        if (addr == null)
-                        {
-                            return null;
-                        }
-                        try
-                        {
-                            final ServerSocketChannel serverChannel = ServerSocketChannel.open();
-                            serverChannel.bind(addr);
-                            serverChannel.configureBlocking(false);
-                            return serverChannel;
-                        }
-                        catch (IOException e)
-                        {
-                            throw new UncheckedIOException(e);
-                        }
-                    });
+            final ServerSocketChannel channel = socketFactory.apply(topicId);
+
+            System.out.printf("Listening to topic %d on %s%n", topicId, channel);
+
             serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
             ptr++;
         }
@@ -80,15 +65,20 @@ public final class Server
                     topicChannel.readLength();
                     if (topicChannel.isReady())
                     {
+                        System.out.printf("Received data on %s%n", topicChannel.channel);
                         dataProcessed = true;
                         final WritableRecord record = subscriberPageCache.acquireRecordBuffer(topicChannel.getLength());
                         try
                         {
                             final ByteBuffer buffer = record.buffer();
+                            final int position = buffer.position();
                             while (buffer.remaining() != 0)
                             {
                                 topicChannel.channel.read(buffer);
                             }
+
+                            System.out.printf("Wrote to topic %d from %s%n",
+                                    buffer.getInt(position), topicChannel.channel);
                         }
                         finally
                         {
@@ -133,7 +123,8 @@ public final class Server
                 final SocketChannel accepted = serverSocketChannels[i].channel.accept();
                 if (accepted != null)
                 {
-                    channels.add(new TopicChannel(accepted, serverSocketChannels[i].topicId));
+                    channels.add(new TopicChannel(accepted));
+                    System.out.printf("new connection %s%n", accepted);
                 }
             }
             catch (IOException e)
@@ -147,13 +138,11 @@ public final class Server
     private static final class TopicChannel
     {
         private final SocketChannel channel;
-        private final int topicId;
         private final ByteBuffer lengthBuffer = ByteBuffer.allocateDirect(4);
 
-        TopicChannel(final SocketChannel channel, final int topicId)
+        TopicChannel(final SocketChannel channel)
         {
             this.channel = channel;
-            this.topicId = topicId;
         }
 
         boolean isReady()

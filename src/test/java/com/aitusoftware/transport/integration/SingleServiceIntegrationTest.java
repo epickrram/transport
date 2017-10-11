@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -35,7 +36,7 @@ public final class SingleServiceIntegrationTest
     {
         final Path path = Fixtures.tempDirectory();
 
-        final ServiceFactory serviceFactory = new ServiceFactory(path);
+        final ServiceFactory serviceFactory = new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()));
         final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, null));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, null));

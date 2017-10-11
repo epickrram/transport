@@ -8,26 +8,18 @@ import com.aitusoftware.transport.factory.SubscriberDefinition;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertTrue;
 
-@Ignore
 public final class MultiServiceIntegrationTest
 {
-    private static final InetSocketAddress ORDER_GATEWAY_CONNECT_ADDR =
-            new InetSocketAddress("127.0.0.1", 15001);
-    private static final InetSocketAddress TRADER_BOT_CONNECT_ADDR =
-            new InetSocketAddress("127.0.0.1", 16001);
-    private static final InetSocketAddress ORDER_GATEWAY_LISTEN_ADDR =
-            new InetSocketAddress("0.0.0.0", ORDER_GATEWAY_CONNECT_ADDR.getPort());
-    private static final InetSocketAddress TRADER_BOT_LISTEN_ADDR =
-            new InetSocketAddress("0.0.0.0", TRADER_BOT_CONNECT_ADDR.getPort());
     private Service traderBotService;
     private MarketData marketDataPublisher;
     private Service orderGatewayService;
@@ -41,22 +33,30 @@ public final class MultiServiceIntegrationTest
         final Path traderBotPath = Fixtures.tempDirectory();
         final Path orderGatewayPath = Fixtures.tempDirectory();
 
-        traderBotServiceFactory = new ServiceFactory(traderBotPath);
+        final ServerSocketChannel traderBotListenAddr = ServerSocketChannel.open();
+        traderBotListenAddr.configureBlocking(false);
+        traderBotListenAddr.bind(null);
+
+        final ServerSocketChannel orderGatewayListenAddr = ServerSocketChannel.open();
+        orderGatewayListenAddr.configureBlocking(false);
+        orderGatewayListenAddr.bind(null);
+
+        traderBotServiceFactory = new ServiceFactory(traderBotPath, new FixedServerSocketFactory(traderBotListenAddr));
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
         traderBotServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(MarketData.class, traderBot, TRADER_BOT_LISTEN_ADDR));
+                new SubscriberDefinition<>(MarketData.class, traderBot, null));
         traderBotServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(MarketNews.class, traderBot, TRADER_BOT_LISTEN_ADDR));
+                new SubscriberDefinition<>(MarketNews.class, traderBot, null));
         traderBotServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(TradeNotifications.class, traderBot, TRADER_BOT_LISTEN_ADDR));
-        traderBotServiceFactory.registerRemoteListenerTo(OrderNotifications.class, ORDER_GATEWAY_CONNECT_ADDR);
+                new SubscriberDefinition<>(TradeNotifications.class, traderBot, null));
+        traderBotServiceFactory.registerRemoteListenerTo(OrderNotifications.class, toLocalHostAddress(orderGatewayListenAddr));
         this.traderBotService = traderBotServiceFactory.create();
 
-        orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath);
+        orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath, new FixedServerSocketFactory(orderGatewayListenAddr));
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
         orderGatewayServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(OrderNotifications.class, orderGateway, ORDER_GATEWAY_LISTEN_ADDR));
-        orderGatewayServiceFactory.registerRemoteListenerTo(TradeNotifications.class, TRADER_BOT_CONNECT_ADDR);
+                new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));
+        orderGatewayServiceFactory.registerRemoteListenerTo(TradeNotifications.class, toLocalHostAddress(traderBotListenAddr));
         this.orderGatewayService = orderGatewayServiceFactory.create();
 
         final PageCache inputPageCache = PageCache.create(traderBotPath.resolve(ServiceFactory.SUBSCRIBER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
@@ -83,4 +83,11 @@ public final class MultiServiceIntegrationTest
         assertTrue(traderBotService.stop(5, TimeUnit.SECONDS));
         assertTrue(orderGatewayService.stop(5, TimeUnit.SECONDS));
     }
+
+    private static InetSocketAddress toLocalHostAddress(final ServerSocketChannel orderGatewayListenAddr) throws IOException
+    {
+        return new InetSocketAddress("127.0.0.1",
+                ((InetSocketAddress) orderGatewayListenAddr.getLocalAddress()).getPort());
+    }
+
 }
