@@ -28,7 +28,8 @@ public final class Server
     private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
     private final CountDownLatch listenerStarted = new CountDownLatch(1);
 
-    public Server(final IntHashSet subscriberTopicIds, final IntFunction<ServerSocketChannel> socketFactory,
+    public Server(final IntHashSet subscriberTopicIds,
+                  final IntFunction<ServerSocketChannel> socketFactory,
                   final PageCache subscriberPageCache)
     {
         this.subscriberTopicIds = subscriberTopicIds;
@@ -44,7 +45,7 @@ public final class Server
         {
             final ServerSocketChannel channel = socketFactory.apply(topicId);
 
-            serverSocketChannels[ptr] = new ServerTopicChannel(channel, topicId);
+            serverSocketChannels[ptr] = new ServerTopicChannel(channel);
             ptr++;
         }
 
@@ -165,12 +166,10 @@ public final class Server
     private static final class ServerTopicChannel
     {
         private final ServerSocketChannel channel;
-        private final int topicId;
 
-        ServerTopicChannel(final ServerSocketChannel channel, final int topicId)
+        ServerTopicChannel(final ServerSocketChannel channel)
         {
             this.channel = channel;
-            this.topicId = topicId;
         }
     }
 }
