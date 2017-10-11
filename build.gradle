@@ -1,9 +1,6 @@
 repositories {
     jcenter()
-    flatDir {
-        dir('../proxygen/build/libs')
-
-    }
+    mavenCentral()
 }
 
 buildscript {
