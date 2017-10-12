@@ -36,7 +36,9 @@ public final class SingleServiceIntegrationTest
     {
         final Path path = Fixtures.tempDirectory();
 
-        final ServiceFactory serviceFactory = new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()));
+        final ServiceFactory serviceFactory =
+                new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()),
+                        new StaticAddressSpace());
         final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, null));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, null));

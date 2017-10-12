@@ -6,6 +6,7 @@ import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
+import com.aitusoftware.transport.net.AddressSpace;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,8 +41,11 @@ public final class MultiServiceIntegrationTest
         final ServerSocketChannel orderGatewayListenAddr = ServerSocketChannel.open();
         orderGatewayListenAddr.configureBlocking(false);
         orderGatewayListenAddr.bind(null);
+        final AddressSpace testAddressSpace = new DelegatingAddressSpace(new StaticAddressSpace(),
+                traderBotListenAddr.socket().getLocalPort(),
+                orderGatewayListenAddr.socket().getLocalPort());
 
-        traderBotServiceFactory = new ServiceFactory(traderBotPath, new FixedServerSocketFactory(traderBotListenAddr));
+        traderBotServiceFactory = new ServiceFactory(traderBotPath, new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace);
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
         traderBotServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, null));
@@ -49,14 +53,12 @@ public final class MultiServiceIntegrationTest
                 new SubscriberDefinition<>(MarketNews.class, traderBot, null));
         traderBotServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(TradeNotifications.class, traderBot, null));
-        traderBotServiceFactory.registerRemoteListenerTo(OrderNotifications.class, toLocalHostAddress(orderGatewayListenAddr));
         this.traderBotService = traderBotServiceFactory.create();
 
-        orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath, new FixedServerSocketFactory(orderGatewayListenAddr));
+        orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath, new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace);
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
         orderGatewayServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));
-        orderGatewayServiceFactory.registerRemoteListenerTo(TradeNotifications.class, toLocalHostAddress(traderBotListenAddr));
         this.orderGatewayService = orderGatewayServiceFactory.create();
 
         final PageCache inputPageCache = PageCache.create(traderBotPath.resolve(ServiceFactory.SUBSCRIBER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
@@ -90,4 +92,37 @@ public final class MultiServiceIntegrationTest
                 ((InetSocketAddress) orderGatewayListenAddr.getLocalAddress()).getPort());
     }
 
+    private static final class DelegatingAddressSpace implements AddressSpace
+    {
+        private final AddressSpace delegate;
+        private final int traderBotListenPort;
+        private final int orderGatewayListenPort;
+
+        private DelegatingAddressSpace(final AddressSpace delegate,
+                                       final int traderBotListenPort,
+                                       final int orderGatewayListenPort)
+        {
+            this.delegate = delegate;
+            this.traderBotListenPort = traderBotListenPort;
+            this.orderGatewayListenPort = orderGatewayListenPort;
+        }
+
+        @Override
+        public int portOf(final Class<?> topicClass)
+        {
+            if (MarketData.class.isAssignableFrom(topicClass) ||
+                    MarketNews.class.isAssignableFrom(topicClass) ||
+                    TradeNotifications.class.isAssignableFrom(topicClass))
+            {
+                return traderBotListenPort;
+            }
+            return orderGatewayListenPort;
+        }
+
+        @Override
+        public String hostOf(final Class<?> topicClass)
+        {
+            return delegate.hostOf(topicClass);
+        }
+    }
 }

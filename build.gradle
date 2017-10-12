@@ -1,6 +1,9 @@
 repositories {
     jcenter()
     mavenCentral()
+//    flatDir {
+//        dir('../proxygen/build/libs')
+//    }
 }
 
 buildscript {
@@ -28,7 +31,7 @@ checkstyle {
 }
 
 group = 'com.aitusoftware'
-version = '0.0.1'
+version = '0.1.0'
 
 idea {
     project {
@@ -67,12 +70,12 @@ compileTestJava {
 
 dependencies {
     testCompile 'junit:junit:4.12'
-    testCompile 'com.aitusoftware:proxygen:0.0.1'
+    testCompile 'com.aitusoftware:proxygen:0.1.0'
 
-    compile 'com.aitusoftware:proxygen:0.0.1'
+    compile 'com.aitusoftware:proxygen:0.1.0'
     compile group: 'org.agrona', name: 'agrona', version: '0.9.7'
 
 
-    apt 'com.aitusoftware:proxygen:0.0.1'
-    testApt 'com.aitusoftware:proxygen:0.0.1'
+    apt 'com.aitusoftware:proxygen:0.1.0'
+    testApt 'com.aitusoftware:proxygen:0.1.0'
 }

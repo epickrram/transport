@@ -11,7 +11,7 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -23,8 +23,7 @@ public final class Server
     private final IntFunction<ServerSocketChannel> socketFactory;
     private final PageCache subscriberPageCache;
     private final ServerTopicChannel[] serverSocketChannels;
-    // TODO reduce garbage
-    private final List<TopicChannel> channels = new LinkedList<>();
+    private final List<TopicChannel> channels = new ArrayList<>();
     private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
     private final CountDownLatch listenerStarted = new CountDownLatch(1);
 
@@ -57,8 +56,9 @@ public final class Server
 
             boolean dataProcessed = false;
 
-            for (final TopicChannel topicChannel : channels)
+            for (int i = 0; i < channels.size(); i++)
             {
+                final TopicChannel topicChannel = channels.get(i);
                 try
                 {
                     topicChannel.readLength();

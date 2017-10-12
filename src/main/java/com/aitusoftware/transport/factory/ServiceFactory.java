@@ -7,6 +7,7 @@ import com.aitusoftware.transport.messaging.proxy.AbstractPublisher;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
+import com.aitusoftware.transport.net.AddressSpace;
 import com.aitusoftware.transport.net.OutputChannel;
 import com.aitusoftware.transport.net.Server;
 import com.aitusoftware.transport.net.ServerSocketFactory;
@@ -34,6 +35,7 @@ public final class ServiceFactory
     private final Path pageCachePath;
     private final PublisherFactory publisherFactory;
     private final PageCache subscriberPageCache;
+    private final AddressSpace addressSpace;
     private final Int2ObjectHashMap<Subscriber> topicToSubscriber = new Int2ObjectHashMap<>();
     private final IntHashSet topicIds = new IntHashSet();
     private final SubscriberFactory subscriberFactory;
@@ -44,11 +46,14 @@ public final class ServiceFactory
     private final List<StreamingReader> readers = new ArrayList<>();
     private final ServerSocketFactory socketFactory;
 
-    public ServiceFactory(final Path pageCachePath, final ServerSocketFactory socketFactory) throws IOException
+    public ServiceFactory(
+            final Path pageCachePath, final ServerSocketFactory socketFactory,
+            final AddressSpace addressSpace) throws IOException
     {
         this.pageCachePath = pageCachePath;
         publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
         subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
+        this.addressSpace = addressSpace;
         publisherFactory = new PublisherFactory(publisherPageCache);
         subscriberFactory = new SubscriberFactory();
         this.socketFactory = socketFactory;
@@ -58,6 +63,8 @@ public final class ServiceFactory
     {
         final T publisher = publisherFactory.getPublisherProxy(topicDefinition);
         publishers.add((AbstractPublisher) publisher);
+        socketMapper.addAddress(TopicIdCalculator.calculate(topicDefinition),
+                addressSpace.addressOf(topicDefinition));
         return publisher;
     }
 
@@ -67,17 +74,8 @@ public final class ServiceFactory
         final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation());
         subscribers.add(subscriber);
         topicToSubscriber.put(topicId, subscriber);
-        if (definition.getSocketAddress() != null)
-        {
-            socketFactory.registerTopicAddress(topicId, definition.getSocketAddress());
-        }
+        socketFactory.registerTopicAddress(topicId, addressSpace.addressOf(definition.getTopic()));
         topicIds.add(topicId);
-    }
-
-    public <T> void registerRemoteListenerTo(
-            final Class<T> implementation, final SocketAddress socketAddress)
-    {
-        socketMapper.addAddress(TopicIdCalculator.calculate(implementation), socketAddress);
     }
 
     public Service create()
