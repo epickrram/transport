@@ -67,7 +67,7 @@ public final class StreamingReader
 
             if (zeroCopy)
             {
-                final ByteBuffer slice = page.slice(position, recordLength);
+                final ByteBuffer slice = pageCache.slice(pageNumber, position, recordLength);
                 recordHandler.onRecord(slice, pageNumber, position);
             }
             else
@@ -78,7 +78,7 @@ public final class StreamingReader
                 }
                 buffer.clear();
                 buffer.limit(recordLength);
-                page.read(position, buffer);
+                pageCache.read(pageNumber, position, buffer);
                 recordHandler.onRecord(buffer, pageNumber, position);
             }
             localMessageCount++;

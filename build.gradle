@@ -26,6 +26,10 @@ apply plugin: 'net.ltgt.apt-idea'
 sourceCompatibility = 1.9
 targetCompatibility = 1.9
 
+javadoc {
+    exclude('module-info.java')
+}
+
 checkstyle {
     toolVersion = '6.3'
 }

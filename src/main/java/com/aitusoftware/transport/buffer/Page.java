@@ -5,10 +5,13 @@ import java.nio.file.Path;
 
 import static com.aitusoftware.transport.buffer.Offsets.toPageOffset;
 
+/**
+ * Represents a fixed-size area of shared memory.
+ */
 public final class Page
 {
     static final int CLAIMED_MARKER = 0b1000_0000_0000_0000_0000_0000_0000_0000;
-    public static final int READY_MARKER = 0b0100_0000_0000_0000_0000_0000_0000_0000;
+    static final int READY_MARKER = 0b0100_0000_0000_0000_0000_0000_0000_0000;
     private static final int EOF_MARKER = 0b0010_0000_0000_0000_0000_0000_0000_0000;
     private static final int READY_MARKER_MASK = 0b0100_0000_0000_0000_0000_0000_0000_0000;
 
@@ -35,7 +38,7 @@ public final class Page
         this.pagePath = pagePath;
     }
 
-    public WriteResult write(final ByteBuffer data)
+    WriteResult write(final ByteBuffer data)
     {
         final int remaining = data.remaining();
         final int response = acquireSpaceInBuffer(remaining);
@@ -60,7 +63,7 @@ public final class Page
     }
 
 
-    public int acquireSpaceInBuffer(final int remaining)
+    int acquireSpaceInBuffer(final int remaining)
     {
         if (remaining > MAX_DATA_LENGTH)
         {
@@ -88,12 +91,12 @@ public final class Page
         slab.compareAndSetInt(toPageOffset(position), 0, EOF_MARKER);
     }
 
-    public void read(final int position, final ByteBuffer buffer)
+    void read(final int position, final ByteBuffer buffer)
     {
         slab.copyInto(toPageOffset(position) + Record.HEADER_LENGTH, buffer);
     }
 
-    public ByteBuffer slice(final int position, final int recordLength)
+    ByteBuffer slice(final int position, final int recordLength)
     {
         final ByteBuffer slice = getSlice();
 
@@ -119,11 +122,6 @@ public final class Page
         return pageHeader.nextAvailableWritePosition();
     }
 
-    private long availableDataLength()
-    {
-        return slab.capacity() - PageHeader.HEADER_SIZE;
-    }
-
     public static boolean isReady(final int recordHeader)
     {
         return (recordHeader & READY_MARKER_MASK) != 0;
@@ -137,6 +135,11 @@ public final class Page
     public static int recordLength(final int recordHeader)
     {
         return recordHeader & MAX_DATA_LENGTH;
+    }
+
+    private long availableDataLength()
+    {
+        return slab.capacity() - PageHeader.HEADER_SIZE;
     }
 
     private boolean claimPosition(final int position)

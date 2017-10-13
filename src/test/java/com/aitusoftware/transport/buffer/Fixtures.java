@@ -78,7 +78,9 @@ public enum Fixtures
             tagMessage(buffer, i);
             buffer.flip();
 
-            pageCache.append(buffer);
+            final WritableRecord record = pageCache.acquireRecordBuffer(buffer.remaining());
+            record.buffer().put(buffer);
+            record.commit();
         }
     }
 

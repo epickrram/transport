@@ -8,6 +8,13 @@ import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 
+/**
+ * The entry-point to the journal containing records.
+ *
+ * Safe for reading and writing by multiple threads.
+ *
+ * Maintains a 'current' {@link Page} for writing.
+ */
 public final class PageCache
 {
     private static final VarHandle CURRENT_PAGE_VH;
@@ -50,6 +57,12 @@ public final class PageCache
         this.pageIndex = pageIndex;
     }
 
+    /**
+     * Acquire a slice in the underlying page with specified capacity.
+     *
+     * @param recordLength required capacity
+     * @return placeholder for data
+     */
     public WritableRecord acquireRecordBuffer(final int recordLength)
     {
         final Page page = (Page) CURRENT_PAGE_VH.getVolatile(this);
@@ -99,14 +112,11 @@ public final class PageCache
         }
     }
 
-    // contain page-cache header
-    void append(final ByteBuffer source)
-    {
-        final WritableRecord record = acquireRecordBuffer(source.remaining());
-        record.buffer().put(source);
-        record.commit();
-    }
-
+    /**
+     * Estimates the total data size contained in the page cache directory.
+     *
+     * @return total length in bytes
+     */
     public long estimateTotalLength()
     {
         final Page page = (Page) CURRENT_PAGE_VH.get(this);
@@ -114,22 +124,64 @@ public final class PageCache
                 page.nextAvailablePosition();
     }
 
+    /**
+     * Tests whether a page is available in the page-cache directory
+     *
+     * @param pageNumber to test for
+     * @return whether the page is available for reading
+     */
     public boolean isPageAvailable(final int pageNumber)
     {
+        if (pageIndex.isLessThanLowestTrackedPageNumber(pageNumber))
+        {
+            // TODO fall-back to file-system lookup
+        }
         return pageIndex.isPageCreated(pageNumber);
     }
 
+    /**
+     * Load a page from the page-cache
+     *
+     * @param pageNumber the number of an existing page
+     * @return the {@link Page}
+     */
     public Page getPage(final int pageNumber)
     {
         // optimisation - cache pages
         return allocator.loadExisting(pageNumber);
     }
 
+    // not thread-safe consider removing
+    public void read(final int pageNumber, final int position, final ByteBuffer buffer)
+    {
+        getPage(pageNumber).read(position, buffer);
+    }
+
+    public ByteBuffer slice(final int pageNumber, final int position, final int recordLength)
+    {
+        return getPage(pageNumber).slice(position, recordLength);
+    }
+
+    // TODO fixed-length AtomicReferenceArray of Page containing recently-accessed pages
+
+    /**
+     * Retrieve the size of each page in the cache
+     *
+     * @return page size in bytes
+     */
     public int getPageSize()
     {
         return pageSize;
     }
 
+    /**
+     * Create a page-cache in the specified directory
+     *
+     * @param path file-system path in which to store data
+     * @param pageSize size of each page in bytes
+     * @return the PageCache
+     * @throws IOException if the page-cache cannot be initialised
+     */
     public static PageCache create(final Path path, final int pageSize) throws IOException
     {
         Directories.ensureDirectoryExists(path);

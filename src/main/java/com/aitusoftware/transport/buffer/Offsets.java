@@ -9,7 +9,7 @@ public final class Offsets
     private final int pageNumberShift;
     private final long pageOffsetMask;
 
-    public Offsets(final int pageSize)
+    Offsets(final int pageSize)
     {
         this.pageSize = pageSize;
 
