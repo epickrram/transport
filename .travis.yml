@@ -4,9 +4,9 @@ jdk:
 notifications:
     email: false
 
-  webhooks:
+webhooks:
     urls:
-      - https://webhooks.gitter.im/e/7347b1501d9dca8c5355
+        - https://webhooks.gitter.im/e/7347b1501d9dca8c5355
     on_success: change
     on_failure: always
     on_start: never
