@@ -13,7 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.TimeUnit;
 
-public final class PageAllocator
+final class PageAllocator
 {
     private static final long MAX_RACE_TIME_SECONDS = 5L;
 
@@ -22,7 +22,7 @@ public final class PageAllocator
     private final int pageSize;
     private final PageIndex pageIndex;
 
-    public PageAllocator(final Path path, final int pageSize, final PageIndex pageIndex)
+    PageAllocator(final Path path, final int pageSize, final PageIndex pageIndex)
     {
         this.path = path;
         this.pageSize = pageSize;
@@ -37,9 +37,13 @@ public final class PageAllocator
         {
             try
             {
-                FileChannel.open(pagePath, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-                new RandomAccessFile(pagePath.toFile(), "rw").setLength(pageSize + PageHeader.HEADER_SIZE);
-                pageIndex.onPageCreated(pageNumber);
+                try (final FileChannel channel = FileChannel.open(pagePath,
+                        StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+                     final RandomAccessFile file = new RandomAccessFile(pagePath.toFile(), "rw"))
+                {
+                    file.setLength(pageSize + PageHeader.HEADER_SIZE);
+                    pageIndex.onPageCreated(pageNumber);
+                }
             }
             catch (IOException e)
             {

@@ -4,7 +4,10 @@ import com.aitusoftware.transport.files.Buffers;
 import com.aitusoftware.transport.files.Filenames;
 
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Comparator;
 
@@ -13,15 +16,30 @@ final class PageIndex
     static final int SLOTS = 128;
     private static final int SLOT_MASK = SLOTS - 1;
     private static final int SLOT_SIZE = 4;
+    public static final int FILE_SIZE = SLOTS * SLOT_SIZE;
 
     private final Slab slab;
     private final Path path;
 
     static PageIndex forPageCache(final Path path) throws IOException
     {
+        final Path indexFile = path.resolve("pages.idx");
+        try
+        {
+            try (final FileChannel channel = FileChannel.open(indexFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
+                 final RandomAccessFile file = new RandomAccessFile(indexFile.toFile(), "rw"))
+            {
+                file.setLength(FILE_SIZE);
+            }
+        }
+        catch (IOException e)
+        {
+            // already created
+        }
+
         final PageIndex pageIndex = new PageIndex(SlabFactory.SLAB_FACTORY.
                 createSlab(Buffers.map(
-                        path.resolve("pages.idx"), false, SLOTS * SLOT_SIZE)), path);
+                        indexFile, false, FILE_SIZE)), path);
         pageIndex.refresh();
         return pageIndex;
     }
