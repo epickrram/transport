@@ -1,6 +1,5 @@
 package com.aitusoftware.transport.messaging;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -33,7 +32,6 @@ public final class MessageTest
         assertProperties(flyweight);
     }
 
-    @Ignore
     @Test
     public void shouldProvideHeapCopyFromFlyweight() throws Exception
     {
