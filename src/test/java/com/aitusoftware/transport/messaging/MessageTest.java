@@ -12,13 +12,14 @@ public final class MessageTest
     private static final long ORDER_ID = 17L;
     private static final double PRICE = 3.14;
     private static final double QUANTITY = Double.MAX_VALUE;
+    private static final String IDENTIFIER = "identifier";
 
     @Test
     public void shouldBuildSerialiseAndCopy() throws Exception
     {
         final OrderDetailsBuilder details =
                 new OrderDetailsBuilder().orderId(ORDER_ID).price(PRICE).
-                        quantity(QUANTITY);
+                        quantity(QUANTITY).setIdentifier(IDENTIFIER);
 
         assertProperties(details);
         final ByteBuffer buffer = ByteBuffer.allocate(details.length());
@@ -37,7 +38,7 @@ public final class MessageTest
     {
         final OrderDetailsBuilder details =
                 new OrderDetailsBuilder().orderId(ORDER_ID).price(PRICE).
-                        quantity(QUANTITY);
+                        quantity(QUANTITY).setIdentifier(IDENTIFIER);
 
         final ByteBuffer buffer = ByteBuffer.allocate(details.length());
 
@@ -50,10 +51,12 @@ public final class MessageTest
         assertProperties(flyweight.heapCopy());
     }
 
-    private static void assertProperties(final OrderDetails flyweight)
+    private static void assertProperties(final OrderDetails details)
     {
-        assertThat(flyweight.orderId(), is(ORDER_ID));
-        assertThat(flyweight.quantity(), is(QUANTITY));
-        assertThat(flyweight.price(), is(PRICE));
+        assertThat(details.orderId(), is(ORDER_ID));
+        assertThat(details.quantity(), is(QUANTITY));
+        assertThat(details.price(), is(PRICE));
+//        assertThat(IDENTIFIER + "!=" + details.getIdentifier(),
+//                IDENTIFIER.contentEquals(details.getIdentifier()), is(true));
     }
 }
