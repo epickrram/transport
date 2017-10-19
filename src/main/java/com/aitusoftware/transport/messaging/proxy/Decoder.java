@@ -55,4 +55,56 @@ public final class Decoder
 
         return builder;
     }
+
+    public static boolean decodeBooleanAt(final ByteBuffer buffer, final int offset)
+    {
+        return buffer.get(offset) != 0;
+    }
+
+    public static byte decodeByteAt(final ByteBuffer buffer, final int offset)
+    {
+        return buffer.get(offset);
+    }
+
+    public static short decodeShortAt(final ByteBuffer buffer, final int offset)
+    {
+        return buffer.getShort(offset);
+    }
+
+    public static int decodeIntAt(final ByteBuffer buffer, final int offset)
+    {
+        return buffer.getInt(offset);
+    }
+
+    public static char decodeCharAt(final ByteBuffer buffer, final int offset)
+    {
+        return buffer.getChar(offset);
+    }
+
+    public static float decodeFloatAt(final ByteBuffer buffer, final int offset)
+    {
+        return Float.intBitsToFloat(buffer.getInt(offset));
+    }
+
+    public static long decodeLongAt(final ByteBuffer buffer, final int offset)
+    {
+        return buffer.getLong(offset);
+    }
+
+    public static double decodeDoubleAt(final ByteBuffer buffer, final int offset)
+    {
+        return Double.longBitsToDouble(buffer.getLong(offset));
+    }
+
+    public static CharSequence decodeCharSequenceAt(final ByteBuffer buffer, final int offset, final StringBuilder builder)
+    {
+        final int length = buffer.getInt(offset);
+        builder.setLength(0);
+        for (int i = 0; i < length; i++)
+        {
+            builder.append(buffer.getChar(offset + 4 + (4 * i)));
+        }
+
+        return builder;
+    }
 }

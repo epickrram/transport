@@ -1,6 +1,6 @@
 package com.aitusoftware.transport.messaging.proxy;
 
-import com.aitusoftware.proxygen.Constants;
+import com.aitusoftware.proxygen.common.Constants;
 
 import java.lang.reflect.InvocationTargetException;
 
