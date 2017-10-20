@@ -102,7 +102,7 @@ public final class Decoder
         builder.setLength(0);
         for (int i = 0; i < length; i++)
         {
-            builder.append(buffer.getChar(offset + 4 + i));
+            builder.append(buffer.getChar(offset + 4 + (i * 2)));
         }
 
         return builder;

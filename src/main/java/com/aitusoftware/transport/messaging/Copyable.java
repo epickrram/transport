@@ -6,4 +6,9 @@ public interface Copyable<T>
     {
         throw new UnsupportedOperationException();
     }
+
+    default void copyTo(final Builder<T> builder)
+    {
+        throw new UnsupportedOperationException();
+    }
 }

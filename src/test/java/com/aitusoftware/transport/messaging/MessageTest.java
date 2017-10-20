@@ -56,7 +56,7 @@ public final class MessageTest
         assertThat(details.orderId(), is(ORDER_ID));
         assertThat(details.quantity(), is(QUANTITY));
         assertThat(details.price(), is(PRICE));
-//        assertThat(IDENTIFIER + "!=" + details.getIdentifier(),
-//                IDENTIFIER.contentEquals(details.getIdentifier()), is(true));
+        assertThat(IDENTIFIER + "!=" + details.getIdentifier(),
+                IDENTIFIER.contentEquals(details.getIdentifier()), is(true));
     }
 }
