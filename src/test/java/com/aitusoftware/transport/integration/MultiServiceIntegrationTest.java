@@ -5,6 +5,7 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
+import com.aitusoftware.transport.messaging.StaticAddressSpace;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.net.AddressSpace;
 import org.junit.After;
