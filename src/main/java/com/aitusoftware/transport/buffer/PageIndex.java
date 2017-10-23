@@ -16,7 +16,7 @@ final class PageIndex
     static final int SLOTS = 128;
     private static final int SLOT_MASK = SLOTS - 1;
     private static final int SLOT_SIZE = 4;
-    public static final int FILE_SIZE = SLOTS * SLOT_SIZE;
+    private static final int FILE_SIZE = SLOTS * SLOT_SIZE;
 
     private final Slab slab;
     private final Path path;

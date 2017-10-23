@@ -2,6 +2,7 @@ package com.aitusoftware.transport.messaging.proxy;
 
 import com.aitusoftware.transport.buffer.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.buffer.Preloader;
 import com.aitusoftware.transport.messaging.ExecutionReport;
 import com.aitusoftware.transport.messaging.ExecutionReportBuilder;
 import com.aitusoftware.transport.messaging.OrderDetails;
@@ -43,6 +44,8 @@ public final class CompositeTypesProxyIntegrationTest
     @Test
     public void speedTest() throws Exception
     {
+        final Thread preloader = new Thread(new Preloader(pageCache)::execute);
+        preloader.start();
         final CompositeTopic proxy = factory.getPublisherProxy(CompositeTopic.class);
         final AtomicInteger receivedMessages = new AtomicInteger();
         final Histogram histogram = new Histogram(1_000_000, 3);
@@ -92,6 +95,11 @@ public final class CompositeTypesProxyIntegrationTest
         {
             executionReport.timestamp(System.nanoTime());
             proxy.sendData(j, orderDetails, executionReport, venueResponse, timestamp);
+
+            if ((j & 8191) == 0)
+            {
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
+            }
         }
 
 

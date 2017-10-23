@@ -174,6 +174,12 @@ public final class PageCache
         return existing;
     }
 
+    Page allocate(final int pageNumber)
+    {
+        allocator.safelyAllocatePage(pageNumber);
+        return getPage(pageNumber);
+    }
+
     // not thread-safe consider removing
     public void read(final int pageNumber, final int position, final ByteBuffer buffer)
     {
@@ -193,6 +199,11 @@ public final class PageCache
     public int getPageSize()
     {
         return pageSize;
+    }
+
+    public PageIndex getPageIndex()
+    {
+        return pageIndex;
     }
 
     /**

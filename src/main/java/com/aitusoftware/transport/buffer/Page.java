@@ -176,4 +176,9 @@ public final class Page
         }
         return slice;
     }
+
+    int pageSize()
+    {
+        return slab.capacity();
+    }
 }

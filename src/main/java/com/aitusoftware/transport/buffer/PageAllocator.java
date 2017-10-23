@@ -63,7 +63,7 @@ final class PageAllocator
         final Path pagePath = Filenames.forPageNumber(pageNumber, path);
         try
         {
-            final ByteBuffer buffer = Buffers.map(pagePath, false, pageSize + PageHeader.HEADER_SIZE);
+            final ByteBuffer buffer = Buffers.map(pagePath, loadPageIntoMemory, pageSize + PageHeader.HEADER_SIZE);
             return new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
         }
         catch (IOException e)

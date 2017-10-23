@@ -1,12 +1,12 @@
 repositories {
     jcenter()
     mavenCentral()
-    flatDir {
-        dir('../proxygen/build/libs')
-    }
-    flatDir {
-        dir('lib')
-    }
+//    flatDir {
+//        dir('../proxygen/build/libs')
+//    }
+//    flatDir {
+//        dir('lib')
+//    }
 }
 
 buildscript {
@@ -38,7 +38,7 @@ checkstyle {
 }
 
 group = 'com.aitusoftware'
-version = '0.1.0'
+version = '0.2.0'
 
 idea {
     project {
