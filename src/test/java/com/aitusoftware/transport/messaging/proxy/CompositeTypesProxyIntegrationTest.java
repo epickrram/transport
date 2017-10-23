@@ -49,6 +49,7 @@ public final class CompositeTypesProxyIntegrationTest
         final Subscriber<CompositeTopic> subscriber =
                 subscriberFactory.getSubscriber(CompositeTopic.class,
                         (id, orderDetails, executionReport, venueResponse, timestamp) -> {
+                            System.out.printf("received %d%n", id);
                     receivedMessages.add(new ArgumentContainer(
                             id, orderDetails, executionReport, venueResponse, timestamp));
                 });
@@ -84,7 +85,7 @@ public final class CompositeTypesProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, false, true).process();
+        }, true, true).process();
 
         while (receivedMessages.size() != sentMessages.size())
         {
