@@ -1,7 +1,7 @@
 package com.aitusoftware.transport.messaging;
 
 @Message
-public interface ExecutionReport
+public interface ExecutionReport extends Copyable<ExecutionReport>
 {
     long timestamp();
     CharSequence statusMessage();

@@ -42,13 +42,35 @@ public final class MessageTest
 
         final ByteBuffer buffer = ByteBuffer.allocate(details.length());
 
-        new OrderDetailsSerialiser().serialise(details, buffer);
+        OrderDetailsSerialiser.serialise(details, buffer);
         buffer.flip();
 
         final OrderDetailsFlyweight flyweight = new OrderDetailsFlyweight();
         flyweight.reset(buffer);
 
         assertProperties(flyweight.heapCopy());
+    }
+
+    @Test
+    public void shouldEncodeBooleanFields() throws Exception
+    {
+        assertBooleanEncoding(true);
+        assertBooleanEncoding(false);
+    }
+
+    private void assertBooleanEncoding(final boolean booleanValue)
+    {
+        final ExecutionReportBuilder builder = new ExecutionReportBuilder();
+        builder.isBid(booleanValue).price(1).quantity(2).timestamp(3).orderId("id").statusMessage("status");
+
+        final ByteBuffer buffer = ByteBuffer.allocate(builder.length());
+        ExecutionReportSerialiser.serialise(builder, buffer);
+        buffer.flip();
+
+        final ExecutionReportFlyweight flyweight = new ExecutionReportFlyweight();
+        flyweight.reset(buffer);
+
+        assertThat(flyweight.isBid(), is(booleanValue));
     }
 
     private static void assertProperties(final OrderDetails details)

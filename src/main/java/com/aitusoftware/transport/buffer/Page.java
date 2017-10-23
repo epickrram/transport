@@ -15,7 +15,6 @@ public final class Page
     private static final int EOF_MARKER = 0b0010_0000_0000_0000_0000_0000_0000_0000;
     private static final int READY_MARKER_MASK = 0b0100_0000_0000_0000_0000_0000_0000_0000;
 
-    //////////////////////////////////1000_0000_0000_0000_0000_0000_0000_0000
     private static final int MAX_DATA_LENGTH = 0b0010_0000_0000_0000_0000_0000_0000_0000 - 1;
     private static final int RECORD_LENGTH_MASK = 0b0001_1111_1111_1111_1111_1111_1111_1111;
     static final int ERR_MESSAGE_TOO_LARGE = -1;
@@ -88,7 +87,12 @@ public final class Page
     void tryWriteEof()
     {
         final int position = pageHeader.nextAvailableWritePosition();
-        slab.compareAndSetInt(toPageOffset(position), 0, EOF_MARKER);
+        final int offset = toPageOffset(position);
+
+        if (offset < slab.capacity() - 4)
+        {
+            slab.compareAndSetInt(offset, 0, EOF_MARKER);
+        }
     }
 
     void read(final int position, final ByteBuffer buffer)

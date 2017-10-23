@@ -8,6 +8,7 @@ import com.aitusoftware.transport.messaging.OrderDetails;
 import com.aitusoftware.transport.messaging.OrderDetailsBuilder;
 import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
+import org.HdrHistogram.Histogram;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -18,6 +19,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -33,40 +35,106 @@ public final class CompositeTypesProxyIntegrationTest
     @Before
     public void setUp() throws Exception
     {
-        // 256/8192
-        pageCache = PageCache.create(tempDir, 8192);
+        pageCache = PageCache.create(tempDir, 16777216);
         factory = new PublisherFactory(pageCache);
     }
 
-    @Ignore("buffer overflow in deserialisation")
+    @Ignore
+    @Test
+    public void speedTest() throws Exception
+    {
+        final CompositeTopic proxy = factory.getPublisherProxy(CompositeTopic.class);
+        final AtomicInteger receivedMessages = new AtomicInteger();
+        final Histogram histogram = new Histogram(1_000_000, 3);
+        final Subscriber<CompositeTopic> subscriber =
+                subscriberFactory.getSubscriber(CompositeTopic.class,
+                        (id, orderDetails, executionReport, venueResponse, timestamp) -> {
+                            receivedMessages.incrementAndGet();
+                            if (receivedMessages.get() > 5_000_000)
+                            {
+                                histogram.recordValue(Math.min(1_000_000, (System.nanoTime() - executionReport.timestamp()) / 1000));
+                            }
+                        });
+
+        final OrderDetailsBuilder orderDetails = new OrderDetailsBuilder();
+        final ExecutionReportBuilder executionReport = new ExecutionReportBuilder();
+        final StreamingReader streamingReader = new StreamingReader(pageCache, new RecordHandler()
+        {
+            @Override
+            public void onRecord(final ByteBuffer data, final int pageNumber, final int position)
+            {
+                data.getInt();
+                subscriber.onRecord(data, pageNumber, position);
+            }
+        }, true, true);
+
+        final Thread receiver = new Thread(streamingReader::process);
+        receiver.start();
+        final String venueResponse = "response_";
+        final int timestamp = 7 * 7;
+        final int i = 42;
+        orderDetails.reset();
+        orderDetails.quantity(3 * i);
+        orderDetails.price(5 * i);
+        orderDetails.orderId(11 * i);
+        orderDetails.setIdentifier("order_");
+
+        executionReport.reset();
+        executionReport.isBid((i & 1) == 0);
+        executionReport.orderId("exec_order_");
+        executionReport.statusMessage("status_");
+
+        executionReport.quantity(17 * i);
+        executionReport.price(19 * i);
+
+        final int messageCount = 50_000_000;
+        for (int j = 0; j < messageCount; j++)
+        {
+            executionReport.timestamp(System.nanoTime());
+            proxy.sendData(j, orderDetails, executionReport, venueResponse, timestamp);
+        }
+
+
+        while (receivedMessages.get() != messageCount)
+        {
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1L));
+        }
+
+        histogram.outputPercentileDistribution(System.out, 1d);
+
+        receiver.interrupt();
+        receiver.join();
+    }
+
     @Test
     public void shouldSendMessages() throws Exception
     {
         final CompositeTopic proxy = factory.getPublisherProxy(CompositeTopic.class);
         final List<ArgumentContainer> receivedMessages = new CopyOnWriteArrayList<>();
         final List<ArgumentContainer> sentMessages = new LinkedList<>();
-
         final Subscriber<CompositeTopic> subscriber =
                 subscriberFactory.getSubscriber(CompositeTopic.class,
                         (id, orderDetails, executionReport, venueResponse, timestamp) -> {
-                            System.out.printf("received %d%n", id);
+
                     receivedMessages.add(new ArgumentContainer(
-                            id, orderDetails, executionReport, venueResponse, timestamp));
+                            id, orderDetails.heapCopy(), executionReport.heapCopy(), venueResponse.toString(), timestamp));
                 });
 
         for (int i = 0; i < 50; i++)
         {
             final OrderDetailsBuilder orderDetails = new OrderDetailsBuilder();
+            final ExecutionReportBuilder executionReport = new ExecutionReportBuilder();
+            orderDetails.reset();
             orderDetails.quantity(3 * i);
             orderDetails.price(5 * i);
             orderDetails.orderId(11 * i);
             orderDetails.setIdentifier("order_" + i);
 
-            final ExecutionReportBuilder executionReport = new ExecutionReportBuilder();
+            executionReport.reset();
             executionReport.isBid((i & 1) == 0);
             executionReport.orderId("exec_order_" + i);
             executionReport.statusMessage("status_" + i);
-            executionReport.timestamp(13 * i);
+            executionReport.timestamp(System.nanoTime());
             executionReport.quantity(17 * i);
             executionReport.price(19 * i);
 
@@ -85,7 +153,7 @@ public final class CompositeTypesProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, true, true).process();
+        }, false, true).process();
 
         while (receivedMessages.size() != sentMessages.size())
         {

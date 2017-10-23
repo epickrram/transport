@@ -81,6 +81,7 @@ compileTestJava {
 
 dependencies {
     testCompile 'junit:junit:4.12'
+    testCompile 'org.hdrhistogram:HdrHistogram:2.1.9'
     testCompile "com.aitusoftware:proxygen:0.2.0"
 
     compile "com.aitusoftware:proxygen:0.2.0"

@@ -57,7 +57,6 @@ public final class Slab
 //        intArrayView.setVolatile(backingStore, offset, value);
     }
 
-    // TODO not thread-safe
     public void copy(final int offset, final ByteBuffer source)
     {
         final ByteBuffer slice = threadLocalSlice.get();
@@ -65,7 +64,6 @@ public final class Slab
         slice.position(offset).put(source);
     }
 
-    // TODO not thread-safe
     public void copyInto(final int offset, final ByteBuffer destination)
     {
         final ByteBuffer slice = threadLocalSlice.get();

@@ -3,6 +3,7 @@ package com.aitusoftware.transport.reader;
 import com.aitusoftware.transport.buffer.Offsets;
 import com.aitusoftware.transport.buffer.Page;
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.buffer.Record;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.PausingIdler;
 
@@ -61,9 +62,10 @@ public final class StreamingReader
         }
 
         final int header = page.header(position);
+        final int recordLength = Page.recordLength(header);
         if (Page.isReady(header))
         {
-            final int recordLength = Page.recordLength(header);
+
 
             if (zeroCopy)
             {
@@ -83,7 +85,7 @@ public final class StreamingReader
             }
             localMessageCount++;
             messageCount.lazySet(localMessageCount);
-            position += recordLength;
+            position += recordLength + Record.HEADER_LENGTH;
             position = Offsets.getAlignedPosition(position);
             if (position >= pageCache.getPageSize())
             {
