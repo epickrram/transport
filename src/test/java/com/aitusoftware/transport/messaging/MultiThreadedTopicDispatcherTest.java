@@ -13,6 +13,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.file.Path;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -27,15 +28,16 @@ public final class MultiThreadedTopicDispatcherTest
     private static final int NUMBER_OF_TASKS = 50;
     private static final int NUMBER_OF_ITERATIONS = 20;
     private final Path tempDir = Fixtures.tempDirectory();
-    private PageCache pageCache;
-    private final PublisherFactory factory = new PublisherFactory(pageCache);
     private final SubscriberFactory subscriberFactory = new SubscriberFactory();
+    private PageCache pageCache;
+    private PublisherFactory factory;
     private ExecutorService executorService;
 
     @Before
     public void before() throws Exception
     {
         pageCache = PageCache.create(tempDir, 4096);
+        factory = new PublisherFactory(pageCache);
         executorService = newFixedThreadPool(2);
     }
 
@@ -51,40 +53,58 @@ public final class MultiThreadedTopicDispatcherTest
         final TestTopic proxy = factory.getPublisherProxy(TestTopic.class);
         final OtherTopic paramTester = factory.getPublisherProxy(OtherTopic.class);
         final int expectedMessagesPerTopic = NUMBER_OF_TASKS * NUMBER_OF_ITERATIONS;
+        final CountDownLatch taskLatch = new CountDownLatch(NUMBER_OF_TASKS * 2);
 
         for (int i = 0; i < NUMBER_OF_TASKS; i++)
         {
             executorService.submit(() -> {
-                for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
+                try
                 {
-                    if ((System.nanoTime() & 1L) == 0)
+                    for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
                     {
-                        proxy.say("hola", 7);
-                    }
-                    else
-                    {
-                        proxy.say("bonjour", 11);
+                        if ((System.nanoTime() & 1L) == 0)
+                        {
+                            proxy.say("hola", 7);
+                        }
+                        else
+                        {
+                            proxy.say("bonjour", 11);
+                        }
                     }
                 }
+                catch (RuntimeException e)
+                {
+                    e.printStackTrace();
+                }
+                taskLatch.countDown();
             });
             executorService.submit(() -> {
-                for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
+                try
                 {
-                    if ((System.nanoTime() & 1L) == 0)
+                    for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
                     {
-                        paramTester.testParams(false, (byte) -5, (short) -7, -11,
-                                Float.MAX_VALUE, Long.MIN_VALUE, Double.POSITIVE_INFINITY, "first", "second");
-                    }
-                    else
-                    {
-                        paramTester.testParams(true, (byte) 5, (short) 7, 11,
-                                13.7f, 17L, 19.37d, "first", "second");
+                        if ((System.nanoTime() & 1L) == 0)
+                        {
+                            paramTester.testParams(false, (byte) -5, (short) -7, -11,
+                                    Float.MAX_VALUE, Long.MIN_VALUE, Double.POSITIVE_INFINITY, "first", "second");
+                        }
+                        else
+                        {
+                            paramTester.testParams(true, (byte) 5, (short) 7, 11,
+                                    13.7f, 17L, 19.37d, "first", "second");
+                        }
                     }
                 }
+                catch (RuntimeException e)
+                {
+                    e.printStackTrace();
+                }
+                taskLatch.countDown();
             });
         }
 
-        executorService.shutdown();
+        assertTrue(taskLatch.await(20, TimeUnit.SECONDS));
+        executorService.shutdownNow();
         assertTrue(executorService.awaitTermination(20, TimeUnit.SECONDS));
 
         final Int2ObjectHashMap<Subscriber> subscriberMap =

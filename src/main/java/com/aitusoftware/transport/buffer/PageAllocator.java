@@ -21,12 +21,16 @@ final class PageAllocator
     private final Path path;
     private final int pageSize;
     private final PageIndex pageIndex;
+    private final Unmapper unmapper;
 
-    PageAllocator(final Path path, final int pageSize, final PageIndex pageIndex)
+    PageAllocator(
+            final Path path, final int pageSize,
+            final PageIndex pageIndex, final Unmapper unmapper)
     {
         this.path = path;
         this.pageSize = pageSize;
         this.pageIndex = pageIndex;
+        this.unmapper = unmapper;
     }
 
     Page safelyAllocatePage(final int pageNumber)
@@ -64,7 +68,11 @@ final class PageAllocator
         try
         {
             final ByteBuffer buffer = Buffers.map(pagePath, loadPageIntoMemory, pageSize + PageHeader.HEADER_SIZE);
-            return new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
+            final Page page = new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
+            page.claimReference();
+
+            unmapper.registerPage(page);
+            return page;
         }
         catch (IOException e)
         {

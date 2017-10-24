@@ -4,6 +4,7 @@ import com.aitusoftware.transport.buffer.Offsets;
 import com.aitusoftware.transport.buffer.Page;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.Record;
+import com.aitusoftware.transport.buffer.Slice;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.PausingIdler;
 
@@ -69,8 +70,15 @@ public final class StreamingReader
 
             if (zeroCopy)
             {
-                final ByteBuffer slice = pageCache.slice(pageNumber, position, recordLength);
-                recordHandler.onRecord(slice, pageNumber, position);
+                final Slice slice = pageCache.slice(pageNumber, position, recordLength);
+                try
+                {
+                    recordHandler.onRecord(slice.buffer(), pageNumber, position);
+                }
+                finally
+                {
+                    slice.release();
+                }
             }
             else
             {
@@ -106,6 +114,10 @@ public final class StreamingReader
 
     private void advancePage()
     {
+        if (page != null)
+        {
+            page.releaseReference();
+        }
         page = null;
         pageNumber++;
         position = 0;

@@ -41,11 +41,14 @@ public final class PageCache
 
     private static final ThreadLocal<WritableRecord> RECORD_BUFFER =
             ThreadLocal.withInitial(WritableRecord::new);
+    private static final ThreadLocal<Slice> SLICE =
+            ThreadLocal.withInitial(Slice::new);
     private final PageAllocator allocator;
     private final Path path;
     private final int pageSize;
     private final PageIndex pageIndex;
     private final CachedPage[] cachedPages = new CachedPage[CACHED_PAGE_COUNT];
+    private final Unmapper unmapper = new Unmapper();
     private volatile Page currentPage;
     private volatile int currentPageNumber;
 
@@ -53,7 +56,7 @@ public final class PageCache
     {
         // TODO should handle initialisation from existing file-system resources
         this.path = path;
-        allocator = new PageAllocator(this.path, pageSize, pageIndex);
+        allocator = new PageAllocator(this.path, pageSize, pageIndex, unmapper);
         CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(INITIAL_PAGE_NUMBER));
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
         this.pageSize = pageSize;
@@ -69,6 +72,8 @@ public final class PageCache
     public WritableRecord acquireRecordBuffer(final int recordLength)
     {
         final Page page = (Page) CURRENT_PAGE_VH.getVolatile(this);
+        // TODO need to check return code
+        page.claimReference();
         final int position = page.acquireSpaceInBuffer(recordLength);
 
         if (position >= 0)
@@ -79,11 +84,13 @@ public final class PageCache
         }
         else if (position == Page.ERR_MESSAGE_TOO_LARGE)
         {
+            page.releaseReference();
             throw new RuntimeException(String.format(
                     "Message too large for current page: %s", currentPage));
         }
         else if (position == Page.ERR_NOT_ENOUGH_SPACE)
         {
+            page.releaseReference();
             int pageNumber = page.getPageNumber();
             while (!Thread.currentThread().isInterrupted())
             {
@@ -104,6 +111,7 @@ public final class PageCache
                 {
                     // this thread won, allocate a new page
                     CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
+                    page.releaseReference();
                     break;
                 }
             }
@@ -111,6 +119,7 @@ public final class PageCache
         }
         else
         {
+            page.releaseReference();
             throw new IllegalStateException();
         }
     }
@@ -152,7 +161,9 @@ public final class PageCache
     {
         final int cachedPageIndex = toCachedPageIndex(pageNumber);
         CachedPage cachedPage = cachedPages[cachedPageIndex];
-        if (cachedPage != null)
+        if (cachedPage != null &&
+                cachedPage.page != null &&
+                cachedPage.page.claimReference())
         {
             final Page page = cachedPage.page;
             if (page.getPageNumber() == pageNumber)
@@ -160,6 +171,10 @@ public final class PageCache
                 cachedPage.lastAccessedNanos = System.nanoTime();
                 cachedPages[cachedPageIndex] = cachedPage;
                 return page;
+            }
+            else
+            {
+                cachedPage.page.releaseReference();
             }
         }
         else
@@ -171,24 +186,37 @@ public final class PageCache
         cachedPage.page = existing;
         cachedPage.lastAccessedNanos = System.nanoTime();
         cachedPages[cachedPageIndex] = cachedPage;
+
         return existing;
     }
 
     Page allocate(final int pageNumber)
     {
-        allocator.safelyAllocatePage(pageNumber);
+        allocator.safelyAllocatePage(pageNumber).releaseReference();
         return getPage(pageNumber);
     }
 
     // not thread-safe consider removing
     public void read(final int pageNumber, final int position, final ByteBuffer buffer)
     {
-        getPage(pageNumber).read(position, buffer);
+        final Page page = getPage(pageNumber);
+        try
+        {
+            page.read(position, buffer);
+        }
+        finally
+        {
+            page.releaseReference();
+        }
     }
 
-    public ByteBuffer slice(final int pageNumber, final int position, final int recordLength)
+    public Slice slice(final int pageNumber, final int position, final int recordLength)
     {
-        return getPage(pageNumber).slice(position, recordLength);
+        final Page page = getPage(pageNumber);
+        final ByteBuffer buffer = page.slice(position, recordLength);
+        final Slice slice = SLICE.get();
+        slice.set(buffer, page);
+        return slice;
     }
 
     /**
@@ -204,6 +232,11 @@ public final class PageCache
     public PageIndex getPageIndex()
     {
         return pageIndex;
+    }
+
+    public Unmapper getUnmapper()
+    {
+        return unmapper;
     }
 
     /**

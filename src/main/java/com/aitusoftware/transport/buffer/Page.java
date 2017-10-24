@@ -1,7 +1,10 @@
 package com.aitusoftware.transport.buffer;
 
+import com.aitusoftware.transport.memory.ReferenceCounter;
+
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 import static com.aitusoftware.transport.buffer.Offsets.toPageOffset;
 
@@ -27,6 +30,7 @@ public final class Page
     private final PageHeader pageHeader;
     private final int pageNumber;
     private final Path pagePath;
+    private final ReferenceCounter referenceCounter;
 
     Page(final Slab slab, final int pageNumber, final Path pagePath)
     {
@@ -35,6 +39,7 @@ public final class Page
         pageHeader = new PageHeader(slab);
         this.pageNumber = pageNumber;
         this.pagePath = pagePath;
+        this.referenceCounter = new ReferenceCounter();
     }
 
     WriteResult write(final ByteBuffer data)
@@ -60,7 +65,6 @@ public final class Page
     {
         slab.writeOrderedInt(toPageOffset(headerOffset), READY_MARKER | recordLength);
     }
-
 
     int acquireSpaceInBuffer(final int remaining)
     {
@@ -109,6 +113,16 @@ public final class Page
         slice.position(newPosition).limit(newPosition + recordLength);
 
         return slice;
+    }
+
+    boolean claimReference()
+    {
+        return referenceCounter.claim();
+    }
+
+    public void releaseReference()
+    {
+        referenceCounter.release();
     }
 
     public int header(final int position)
@@ -166,6 +180,21 @@ public final class Page
         return pageNumber;
     }
 
+    boolean acquireForCleanup()
+    {
+        if (referenceCounter.getReferenceCount() == 0 &&
+                referenceCounter.lastClaimIsOlderThan(3, TimeUnit.SECONDS))
+        {
+            return referenceCounter.makeUnreachable();
+        }
+        return false;
+    }
+
+    void unmap()
+    {
+        slab.unmap();
+    }
+
     private ByteBuffer getSlice()
     {
         ByteBuffer slice = this.slice.get();
@@ -175,10 +204,5 @@ public final class Page
             this.slice.set(slice);
         }
         return slice;
-    }
-
-    int pageSize()
-    {
-        return slab.capacity();
     }
 }

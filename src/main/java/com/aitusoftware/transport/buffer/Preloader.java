@@ -16,6 +16,7 @@ public final class Preloader
     private final ByteBuffer buffer = ByteBuffer.allocate(1);
     private final Idler idler = new PausingIdler(1, TimeUnit.MICROSECONDS);
     private boolean pageZeroLoaded = false;
+    private int lastLoadedPage = -1;
 
     public Preloader(final PageCache pageCache)
     {
@@ -35,9 +36,12 @@ public final class Preloader
             }
 
             final Page page = pageCache.getPage(highestPageNumber);
-            if (page.nextAvailablePosition() != 0)
+            final int position = page.nextAvailablePosition();
+            page.releaseReference();
+            if (position != 0 && highestPageNumber > lastLoadedPage)
             {
                 preloadPage(highestPageNumber + 1);
+                lastLoadedPage = highestPageNumber + 1;
             }
             else
             {
@@ -54,5 +58,6 @@ public final class Preloader
             buffer.clear();
             newPage.read(i, buffer);
         }
+        newPage.releaseReference();
     }
 }

@@ -14,6 +14,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.lang.management.BufferPoolMXBean;
+import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.LinkedList;
@@ -25,6 +27,7 @@ import java.util.concurrent.locks.LockSupport;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public final class CompositeTypesProxyIntegrationTest
 {
@@ -44,8 +47,11 @@ public final class CompositeTypesProxyIntegrationTest
     @Test
     public void speedTest() throws Exception
     {
+        final long startMappedBufferCount = mappedBufferCount();
         final Thread preloader = new Thread(new Preloader(pageCache)::execute);
         preloader.start();
+        final Thread unmapper = new Thread(pageCache.getUnmapper()::execute);
+        unmapper.start();
         final CompositeTopic proxy = factory.getPublisherProxy(CompositeTopic.class);
         final AtomicInteger receivedMessages = new AtomicInteger();
         final Histogram histogram = new Histogram(1_000_000, 3);
@@ -90,18 +96,18 @@ public final class CompositeTypesProxyIntegrationTest
         executionReport.quantity(17 * i);
         executionReport.price(19 * i);
 
-        final int messageCount = 50_000_000;
+        final int messageCount = 10_000_000;
         for (int j = 0; j < messageCount; j++)
         {
             executionReport.timestamp(System.nanoTime());
             proxy.sendData(j, orderDetails, executionReport, venueResponse, timestamp);
 
-            if ((j & 8191) == 0)
+            final long pauseUntil = System.nanoTime() + 10_000L;
+            while (System.nanoTime() < pauseUntil)
             {
-                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(5));
+                //spin
             }
         }
-
 
         while (receivedMessages.get() != messageCount)
         {
@@ -112,6 +118,15 @@ public final class CompositeTypesProxyIntegrationTest
 
         receiver.interrupt();
         receiver.join();
+        preloader.interrupt();
+        preloader.join();
+
+        LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(4L));
+
+        unmapper.interrupt();
+        unmapper.join();
+
+        assertTrue(Math.abs(startMappedBufferCount - mappedBufferCount()) < 10);
     }
 
     @Test
@@ -128,7 +143,7 @@ public final class CompositeTypesProxyIntegrationTest
                             id, orderDetails.heapCopy(), executionReport.heapCopy(), venueResponse.toString(), timestamp));
                 });
 
-        for (int i = 0; i < 50; i++)
+        for (int i = 0; i < 1; i++)
         {
             final OrderDetailsBuilder orderDetails = new OrderDetailsBuilder();
             final ExecutionReportBuilder executionReport = new ExecutionReportBuilder();
@@ -200,6 +215,20 @@ public final class CompositeTypesProxyIntegrationTest
                     is(received.executionReport.statusMessage().toString()));
         }
     }
+
+    private static long mappedBufferCount()
+    {
+        final List<BufferPoolMXBean> beans = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);
+        for (BufferPoolMXBean bean : beans)
+        {
+            if (bean.getName().equals("mapped"))
+            {
+                return bean.getCount();
+            }
+        }
+        throw new RuntimeException("Could not find number of mapped buffers");
+    }
+
 
     private static final class ArgumentContainer
     {

@@ -1,7 +1,9 @@
 package com.aitusoftware.transport.buffer;
 
+
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -54,7 +56,6 @@ public final class Slab
     public void writeOrderedInt(final int offset, final int value)
     {
         intArrayView.setRelease(backingStore, offset, value);
-//        intArrayView.setVolatile(backingStore, offset, value);
     }
 
     public void copy(final int offset, final ByteBuffer source)
@@ -93,5 +94,23 @@ public final class Slab
             buffer.append(Long.toHexString(backingStore.getLong(i * 8))).append(' ');
         }
         return buffer.toString();
+    }
+
+    void unmap()
+    {
+        try
+        {
+            final Class<?> cls = Class.forName("sun.nio.ch.DirectBuffer");
+            final Method method = cls.getDeclaredMethod("cleaner");
+            method.setAccessible(true);
+            final Object cleaner = method.invoke(backingStore);
+            final Class<?> cls2 = Class.forName("jdk.internal.ref.Cleaner");
+            final Method m2 = cls2.getDeclaredMethod("clean");
+            m2.invoke(cleaner);
+        }
+        catch (Throwable throwable)
+        {
+            throwable.printStackTrace();
+        }
     }
 }

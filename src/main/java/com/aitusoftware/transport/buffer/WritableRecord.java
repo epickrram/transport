@@ -17,6 +17,7 @@ public final class WritableRecord
     public void commit()
     {
         page.writeReadyHeader(headerOffset, recordLength);
+        page.releaseReference();
     }
 
     void set(final ByteBuffer buffer, final Page page, final int headerOffset)

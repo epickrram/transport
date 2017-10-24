@@ -25,9 +25,7 @@ public class PageAllocatorTest
     @Test
     public void shouldNotLeakFileHandles() throws Exception
     {
-        final List<String> startPageFiles = getPageFileHandles();
-
-        final PageAllocator allocator = new PageAllocator(path, 512, forPageCache(path));
+        final PageAllocator allocator = new PageAllocator(path, 512, forPageCache(path), new Unmapper());
         final List<Page> allocatedPages = new ArrayList<>();
 
         for (int i = 0; i < 10; i++)
