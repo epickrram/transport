@@ -97,12 +97,13 @@ public final class CompositeTypesProxyIntegrationTest
         executionReport.price(19 * i);
 
         final int messageCount = 10_000_000;
+        final long startNanos = System.nanoTime();
         for (int j = 0; j < messageCount; j++)
         {
             executionReport.timestamp(System.nanoTime());
             proxy.sendData(j, orderDetails, executionReport, venueResponse, timestamp);
 
-            final long pauseUntil = System.nanoTime() + 10_000L;
+            final long pauseUntil = System.nanoTime() + 1_000L;
             while (System.nanoTime() < pauseUntil)
             {
                 //spin
@@ -114,12 +115,23 @@ public final class CompositeTypesProxyIntegrationTest
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1L));
         }
 
+        final long durationNanos = System.nanoTime() - startNanos;
+        final double mps = messageCount / (durationNanos / (double)TimeUnit.SECONDS.toNanos(1));
+
+
+
         histogram.outputPercentileDistribution(System.out, 1d);
 
         receiver.interrupt();
         receiver.join();
         preloader.interrupt();
         preloader.join();
+
+        System.out.printf("%n%nAvg throughput %.2f/sec%n", mps);
+        System.out.printf("Mean: %.2f, 50%%: %d, 90%%: %d, 99%%: %d, 99.99%%: %d%n",
+                histogram.getMean(), histogram.getValueAtPercentile(50d),
+                histogram.getValueAtPercentile(90d), histogram.getValueAtPercentile(99d),
+                histogram.getValueAtPercentile(99.99d));
 
         LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(4L));
 
