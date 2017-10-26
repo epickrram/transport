@@ -1,12 +1,12 @@
 repositories {
     jcenter()
     mavenCentral()
-//    flatDir {
-//        dir('../proxygen/build/libs')
-//    }
-//    flatDir {
-//        dir('lib')
-//    }
+    flatDir {
+        dir('../proxygen/build/libs')
+    }
+    flatDir {
+        dir('lib')
+    }
 }
 
 buildscript {
@@ -82,12 +82,12 @@ compileTestJava {
 dependencies {
     testCompile 'junit:junit:4.12'
     testCompile 'org.hdrhistogram:HdrHistogram:2.1.9'
-    testCompile "com.aitusoftware:proxygen:0.2.0"
+    testCompile "com.aitusoftware:proxygen:0.3.0"
 
-    compile "com.aitusoftware:proxygen:0.2.0"
+    compile "com.aitusoftware:proxygen:0.3.0"
     compile group: 'org.agrona', name: 'agrona', version: '0.9.7'
 
 
-    apt "com.aitusoftware:proxygen:0.2.0"
-    testApt "com.aitusoftware:proxygen:0.2.0"
+    apt "com.aitusoftware:proxygen:0.3.0"
+    testApt "com.aitusoftware:proxygen:0.3.0"
 }
