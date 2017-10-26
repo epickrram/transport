@@ -110,7 +110,14 @@ public final class PageCache
                 if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
                 {
                     // this thread won, allocate a new page
-                    CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
+                    if (pageIndex.isPageCreated(pageNumber + 1))
+                    {
+                        CURRENT_PAGE_VH.setRelease(this, getPage(pageNumber + 1));
+                    }
+                    else
+                    {
+                        CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
+                    }
                     page.releaseReference();
                     break;
                 }

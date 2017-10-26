@@ -10,7 +10,9 @@ import static java.lang.Integer.getInteger;
 
 public final class Preloader
 {
-    private static final int PAGE_SIZE = getInteger("aitusoftware.transport.pageSize", 4096);
+    private static final int PAGE_SIZE = getInteger("aitusoftware.transport.pageSize", 64);
+    private static final String THREAD_NAME = "transport-preloader";
+
     private final PageCache pageCache;
     private final PageIndex pageIndex;
     private final ByteBuffer buffer = ByteBuffer.allocate(1);
@@ -26,6 +28,7 @@ public final class Preloader
 
     public void execute()
     {
+        Thread.currentThread().setName(THREAD_NAME);
         while (!Thread.currentThread().isInterrupted())
         {
             final int highestPageNumber = pageIndex.getHighestPageNumber();
@@ -41,7 +44,11 @@ public final class Preloader
             if (position != 0 && highestPageNumber > lastLoadedPage)
             {
                 preloadPage(highestPageNumber + 1);
-                lastLoadedPage = highestPageNumber + 1;
+                preloadPage(highestPageNumber + 2);
+                preloadPage(highestPageNumber + 3);
+                preloadPage(highestPageNumber + 4);
+                preloadPage(highestPageNumber + 5);
+                lastLoadedPage = highestPageNumber + 2;
             }
             else
             {
@@ -53,7 +60,7 @@ public final class Preloader
     private void preloadPage(final int pageNumber)
     {
         final Page newPage = pageCache.allocate(pageNumber);
-        for (int i = 0; i < pageCache.getPageSize(); i += PAGE_SIZE)
+        for (int i = 0; i < pageCache.getPageSize() - 32; i += PAGE_SIZE)
         {
             buffer.clear();
             newPage.read(i, buffer);

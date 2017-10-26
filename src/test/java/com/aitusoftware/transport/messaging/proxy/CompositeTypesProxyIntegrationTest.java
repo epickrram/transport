@@ -96,7 +96,7 @@ public final class CompositeTypesProxyIntegrationTest
         executionReport.quantity(17 * i);
         executionReport.price(19 * i);
 
-        final int messageCount = 10_000_000;
+        final int messageCount = 50_000_000;
         final long startNanos = System.nanoTime();
         for (int j = 0; j < messageCount; j++)
         {
