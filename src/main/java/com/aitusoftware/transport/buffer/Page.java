@@ -125,6 +125,11 @@ public final class Page
         referenceCounter.release();
     }
 
+    int referenceCount()
+    {
+        return referenceCounter.getReferenceCount();
+    }
+
     public int header(final int position)
     {
         return slab.getIntVolatile(toPageOffset(position));

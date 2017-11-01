@@ -20,8 +20,6 @@ public final class PageCache
     private static final VarHandle CURRENT_PAGE_VH;
     private static final VarHandle CURRENT_PAGE_NUMBER_VH;
     private static final int INITIAL_PAGE_NUMBER = 0;
-    private static final int CACHED_PAGE_COUNT = 32;
-    private static final int CACHED_PAGE_MASK = CACHED_PAGE_COUNT - 1;
 
     static
     {
@@ -47,8 +45,8 @@ public final class PageCache
     private final Path path;
     private final int pageSize;
     private final PageIndex pageIndex;
-    private final CachedPage[] cachedPages = new CachedPage[CACHED_PAGE_COUNT];
     private final Unmapper unmapper = new Unmapper();
+    private final LoadedPageCache loadedPageCache;
     private volatile Page currentPage;
     private volatile int currentPageNumber;
 
@@ -61,6 +59,7 @@ public final class PageCache
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
         this.pageSize = pageSize;
         this.pageIndex = pageIndex;
+        loadedPageCache = new LoadedPageCache(allocator);
     }
 
     /**
@@ -166,35 +165,7 @@ public final class PageCache
      */
     public Page getPage(final int pageNumber)
     {
-        final int cachedPageIndex = toCachedPageIndex(pageNumber);
-        CachedPage cachedPage = cachedPages[cachedPageIndex];
-        if (cachedPage != null &&
-                cachedPage.page != null &&
-                cachedPage.page.claimReference())
-        {
-            final Page page = cachedPage.page;
-            if (page.getPageNumber() == pageNumber)
-            {
-                cachedPage.lastAccessedNanos = System.nanoTime();
-                cachedPages[cachedPageIndex] = cachedPage;
-                return page;
-            }
-            else
-            {
-                cachedPage.page.releaseReference();
-            }
-        }
-        else
-        {
-            cachedPage = new CachedPage();
-        }
-
-        final Page existing = allocator.loadExisting(pageNumber);
-        cachedPage.page = existing;
-        cachedPage.lastAccessedNanos = System.nanoTime();
-        cachedPages[cachedPageIndex] = cachedPage;
-
-        return existing;
+        return loadedPageCache.acquire(pageNumber);
     }
 
     Page allocate(final int pageNumber)
@@ -262,14 +233,4 @@ public final class PageCache
         return new PageCache(pageSize, path, pageIndex);
     }
 
-    private static int toCachedPageIndex(final int pageNumber)
-    {
-        return pageNumber & CACHED_PAGE_MASK;
-    }
-
-    private static final class CachedPage
-    {
-        private Page page;
-        private volatile long lastAccessedNanos;
-    }
 }
