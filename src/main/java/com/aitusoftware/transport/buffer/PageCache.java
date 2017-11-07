@@ -10,9 +10,9 @@ import java.nio.file.Path;
 
 /**
  * The entry-point to the journal containing records.
- *
+ * <p>
  * Safe for reading and writing by multiple threads.
- *
+ * <p>
  * Maintains a 'current' {@link Page} for writing.
  */
 public final class PageCache
@@ -71,10 +71,11 @@ public final class PageCache
     public WritableRecord acquireRecordBuffer(final int recordLength)
     {
         final Page page = (Page) CURRENT_PAGE_VH.getVolatile(this);
-        // TODO need to check return code
-        page.claimReference();
+        if (!page.claimReference())
+        {
+            return acquireRecordBuffer(recordLength);
+        }
         final int position = page.acquireSpaceInBuffer(recordLength);
-
         if (position >= 0)
         {
             final WritableRecord record = RECORD_BUFFER.get();
@@ -108,6 +109,7 @@ public final class PageCache
                 pageNumber = (int) CURRENT_PAGE_NUMBER_VH.get(this);
                 if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
                 {
+                    page.releaseReference();
                     // this thread won, allocate a new page
                     if (pageIndex.isPageCreated(pageNumber + 1))
                     {
@@ -117,7 +119,6 @@ public final class PageCache
                     {
                         CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(pageNumber + 1));
                     }
-                    page.releaseReference();
                     break;
                 }
             }
@@ -125,7 +126,6 @@ public final class PageCache
         }
         else
         {
-            page.releaseReference();
             throw new IllegalStateException();
         }
     }
@@ -153,12 +153,17 @@ public final class PageCache
         if (pageIndex.isLessThanLowestTrackedPageNumber(pageNumber))
         {
             // TODO fall-back to file-system lookup
+            throw new UnsupportedOperationException();
         }
         return pageIndex.isPageCreated(pageNumber);
     }
 
     /**
-     * Load a page from the page-cache
+     * Load a page from the page-cache.
+     * <p>
+     * Upon return from this method, the resulting <code>Page</code> will have had its reference count
+     * incremented by 1. It is the responsibility of the caller to invoke the
+     * <code>releaseReference()</code> method after the <code>Page</code> is no longer required.
      *
      * @param pageNumber the number of an existing page
      * @return the {@link Page}
@@ -172,20 +177,6 @@ public final class PageCache
     {
         allocator.safelyAllocatePage(pageNumber).releaseReference();
         return getPage(pageNumber);
-    }
-
-    // not thread-safe consider removing
-    public void read(final int pageNumber, final int position, final ByteBuffer buffer)
-    {
-        final Page page = getPage(pageNumber);
-        try
-        {
-            page.read(position, buffer);
-        }
-        finally
-        {
-            page.releaseReference();
-        }
     }
 
     public Slice slice(final int pageNumber, final int position, final int recordLength)
@@ -220,7 +211,7 @@ public final class PageCache
     /**
      * Create a page-cache in the specified directory
      *
-     * @param path file-system path in which to store data
+     * @param path     file-system path in which to store data
      * @param pageSize size of each page in bytes
      * @return the PageCache
      * @throws IOException if the page-cache cannot be initialised

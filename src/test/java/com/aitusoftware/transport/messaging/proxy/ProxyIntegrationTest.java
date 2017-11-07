@@ -69,7 +69,7 @@ public final class ProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, false, true).process();
+        }, false).process();
 
         assertThat(capture.received.size(), is(2));
         assertThat(capture.received.get("hola"), is(7));

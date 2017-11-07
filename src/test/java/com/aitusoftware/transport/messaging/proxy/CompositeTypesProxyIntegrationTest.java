@@ -75,7 +75,7 @@ public final class CompositeTypesProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, true, true);
+        }, true);
 
         final Thread receiver = new Thread(streamingReader::process);
         receiver.start();
@@ -188,7 +188,7 @@ public final class CompositeTypesProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, false, true).process();
+        }, false).process();
 
         while (receivedMessages.size() != sentMessages.size())
         {

@@ -22,17 +22,29 @@ public class LoadedPageCacheTest
 
         assertThat(pageCreateCount.get(1), is(1));
         assertThat(pageCreateCount.size(), is(1));
+        assertThat(page.referenceCount(), is(1));
     }
 
     @Test
     public void shouldOverwritePageWithClashingIndex() throws Exception
     {
         final Page page1 = cache.acquire(1);
-        final Page page5 = cache.acquire(5);
 
         assertThat(pageCreateCount.get(1), is(1));
+        assertThat(page1.referenceCount(), is(1));
+
+        final Page page5 = cache.acquire(5);
+
         assertThat(pageCreateCount.get(5), is(1));
         assertThat(pageCreateCount.size(), is(2));
+
+        assertThat(page1.referenceCount(), is(0));
+
+        final Page copyOfPage1 = cache.acquire(1);
+        assertThat(pageCreateCount.get(1), is(2));
+        assertThat(pageCreateCount.get(5), is(1));
+
+        assertThat(copyOfPage1.referenceCount(), is(1));
     }
 
     private Page createPageFor(final int pageNumber)

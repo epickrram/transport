@@ -54,7 +54,7 @@ public final class SingleServiceIntegrationTest
 
         final Int2ObjectHashMap<Subscriber> subscriberMap = new Int2ObjectHashMap<>();
         subscriberMap.put(subscriber.getTopicId(), subscriber);
-        final StreamingReader streamingReader = new StreamingReader(outputPageCache, new TopicDispatcherRecordHandler(subscriberMap), true, true);
+        final StreamingReader streamingReader = new StreamingReader(outputPageCache, new TopicDispatcherRecordHandler(subscriberMap), true);
         executor = Executors.newSingleThreadExecutor();
         executor.execute(streamingReader::process);
         this.service.start();

@@ -6,22 +6,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class ReferenceCounter
 {
     private static final int UNREACHABLE = Integer.MIN_VALUE;
-    private final AtomicInteger referenceCount = new AtomicInteger();
+    private final AtomicInteger referenceCount = new AtomicInteger(0);
     private long lastClaimedNanos = 0L;
 
     public boolean claim()
     {
-        final boolean claimed = referenceCount.incrementAndGet() > 0;
+        while (true)
+        {
+            final int current = referenceCount.get();
+            if (current == UNREACHABLE)
+            {
+                return false;
+            }
 
-        if (!claimed)
-        {
-            referenceCount.decrementAndGet();
+            if (referenceCount.compareAndSet(current, current + 1))
+            {
+                lastClaimedNanos = System.nanoTime();
+                return true;
+            }
         }
-        if (claimed)
-        {
-            lastClaimedNanos = System.nanoTime();
-        }
-        return claimed;
     }
 
     public void release()
@@ -52,5 +55,14 @@ public final class ReferenceCounter
     public boolean lastClaimIsOlderThan(final int duration, final TimeUnit unit)
     {
         return lastClaimedNanos + unit.toNanos(duration) < System.nanoTime();
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ReferenceCounter{" +
+                "referenceCount=" + referenceCount +
+                ", lastClaimedNanos=" + lastClaimedNanos +
+                '}';
     }
 }

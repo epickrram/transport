@@ -116,7 +116,7 @@ public final class MultiThreadedTopicDispatcherTest
         final TopicDispatcherRecordHandler topicDispatcher =
                 new TopicDispatcherRecordHandler(subscriberMap);
 
-        new StreamingReader(pageCache, topicDispatcher, false, true).process();
+        new StreamingReader(pageCache, topicDispatcher, false).process();
 
 
         assertThat(testTopicMessageCount.getMessageCount(), is(expectedMessagesPerTopic));

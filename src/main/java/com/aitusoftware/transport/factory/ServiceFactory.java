@@ -84,10 +84,10 @@ public final class ServiceFactory
                 new TopicDispatcherRecordHandler(topicToSubscriber);
 
         final StreamingReader inboundReader =
-                new StreamingReader(subscriberPageCache, topicDispatcher, true, true);
+                new StreamingReader(subscriberPageCache, topicDispatcher, true);
         final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
         final StreamingReader outboundReader =
-                new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true, true);
+                new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true);
         readers.add(inboundReader);
         readers.add(outboundReader);
         final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache);

@@ -60,7 +60,7 @@ public final class TopicDispatcherRecordHandlerTest
         final TopicDispatcherRecordHandler topicDispatcher =
                 new TopicDispatcherRecordHandler(subscriberMap);
 
-        new StreamingReader(pageCache, topicDispatcher, false, true).process();
+        new StreamingReader(pageCache, topicDispatcher, false).process();
 
         assertThat(testTopicMessageCounter.getMessageCount(), is(2));
     }

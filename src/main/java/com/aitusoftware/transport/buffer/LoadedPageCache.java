@@ -1,12 +1,13 @@
 package com.aitusoftware.transport.buffer;
 
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import java.util.function.IntFunction;
 
 final class LoadedPageCache
 {
     private static final int CACHED_PAGE_COUNT = 32;
     private final int indexMask;
-    private final CachedPage[] cachedPages;
+    private final AtomicReferenceArray<Page> cachedPages;
     private final IntFunction<Page> pageAllocator;
 
     LoadedPageCache(final PageAllocator allocator)
@@ -16,39 +17,42 @@ final class LoadedPageCache
 
     LoadedPageCache(final IntFunction<Page> allocator, final int cacheSize)
     {
+        if (Integer.bitCount(cacheSize) != 1)
+        {
+            throw new IllegalArgumentException("cacheSize must be a power of two");
+        }
         this.pageAllocator = allocator;
         this.indexMask = cacheSize - 1;
-        cachedPages = new CachedPage[cacheSize];
+        cachedPages = new AtomicReferenceArray<>(cacheSize);
 
     }
 
     Page acquire(final int pageNumber)
     {
         final int cachedPageIndex = toCachedPageIndex(pageNumber);
-        CachedPage cachedPage = cachedPages[cachedPageIndex];
-        if (cachedPage != null &&
-                cachedPage.page != null &&
-                cachedPage.page.claimReference())
+        Page cachedPage = cachedPages.get(cachedPageIndex);
+        if (cachedPage != null)
         {
-            final Page page = cachedPage.page;
-            if (page.getPageNumber() == pageNumber)
+            if (cachedPage.getPageNumber() == pageNumber)
             {
-                cachedPages[cachedPageIndex] = cachedPage;
-                return page;
+                if (!cachedPage.claimReference())
+                {
+                    return acquire(pageNumber);
+                }
+                return cachedPage;
             }
-            else
-            {
-                cachedPage.page.releaseReference();
-            }
-        }
-        else
-        {
-            cachedPage = new CachedPage();
         }
 
         final Page existing = pageAllocator.apply(pageNumber);
-        cachedPage.page = existing;
-        cachedPages[cachedPageIndex] = cachedPage;
+        if (cachedPage != null && cachedPages.compareAndSet(cachedPageIndex, cachedPage, null))
+        {
+            cachedPage.releaseReference();
+        }
+        if (!existing.claimReference())
+        {
+            return acquire(pageNumber);
+        }
+        cachedPages.set(cachedPageIndex, existing);
 
         return existing;
     }
@@ -56,10 +60,5 @@ final class LoadedPageCache
     private int toCachedPageIndex(final int pageNumber)
     {
         return pageNumber & indexMask;
-    }
-
-    private static final class CachedPage
-    {
-        private Page page;
     }
 }

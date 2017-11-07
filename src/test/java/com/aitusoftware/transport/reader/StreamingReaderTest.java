@@ -46,7 +46,7 @@ public class StreamingReaderTest
 
     private StreamingReader createReader(final boolean zeroCopy)
     {
-        return new StreamingReader(pageCache, handler, false, zeroCopy);
+        return new StreamingReader(pageCache, handler, false);
     }
 
     private static final class CapturingRecordHandler implements RecordHandler

@@ -110,7 +110,14 @@ public final class Page
 
         final int newPosition = toPageOffset(position) + Record.HEADER_LENGTH;
         slice.clear();
-        slice.position(newPosition).limit(newPosition + recordLength);
+        final int newLimit = newPosition + recordLength;
+        if (newLimit > slab.capacity())
+        {
+            throw new IllegalArgumentException(String.format(
+                    "Trying to set limit (%d) past slab capacity (%d); position: %d, length: %d, offset: %d",
+                    newLimit, slab.capacity(), position, recordLength, newPosition));
+        }
+        slice.position(newPosition).limit(newLimit);
 
         return slice;
     }

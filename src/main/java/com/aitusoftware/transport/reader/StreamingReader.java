@@ -8,7 +8,6 @@ import com.aitusoftware.transport.buffer.Slice;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.PausingIdler;
 
-import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -17,23 +16,19 @@ public final class StreamingReader
     private final PageCache pageCache;
     private final RecordHandler recordHandler;
     private final boolean tail;
-    private final boolean zeroCopy;
     private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
     private final AtomicLong messageCount = new AtomicLong();
     private long localMessageCount;
     private int pageNumber = 0;
     private int position = 0;
     private Page page;
-    private ByteBuffer buffer = ByteBuffer.allocateDirect(256);
 
     public StreamingReader(
-            final PageCache pageCache, final RecordHandler recordHandler,
-            final boolean tail, final boolean zeroCopy)
+            final PageCache pageCache, final RecordHandler recordHandler, final boolean tail)
     {
         this.pageCache = pageCache;
         this.recordHandler = recordHandler;
         this.tail = tail;
-        this.zeroCopy = zeroCopy;
     }
 
     public void process()
@@ -67,29 +62,14 @@ public final class StreamingReader
         if (Page.isReady(header))
         {
 
-
-            if (zeroCopy)
+            final Slice slice = pageCache.slice(pageNumber, position, recordLength);
+            try
             {
-                final Slice slice = pageCache.slice(pageNumber, position, recordLength);
-                try
-                {
-                    recordHandler.onRecord(slice.buffer(), pageNumber, position);
-                }
-                finally
-                {
-                    slice.release();
-                }
+                recordHandler.onRecord(slice.buffer(), pageNumber, position);
             }
-            else
+            finally
             {
-                if (recordLength > buffer.capacity())
-                {
-                    buffer = ByteBuffer.allocateDirect(toNextPowerOfTwo(recordLength));
-                }
-                buffer.clear();
-                buffer.limit(recordLength);
-                pageCache.read(pageNumber, position, buffer);
-                recordHandler.onRecord(buffer, pageNumber, position);
+                slice.release();
             }
             localMessageCount++;
             messageCount.lazySet(localMessageCount);
@@ -101,11 +81,11 @@ public final class StreamingReader
             }
             return true;
         }
-        else if(Page.isEof(header))
+        else if (Page.isEof(header))
         {
             advancePage();
         }
-        else if(!tail)
+        else if (!tail)
         {
             return false;
         }
