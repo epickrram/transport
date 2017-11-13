@@ -2,7 +2,7 @@ package com.aitusoftware.transport.messaging;
 
 final class TestTopicMessageCounter implements TestTopic
 {
-    private int messageCount;
+    private volatile int messageCount;
 
     @Override
     public void say(final CharSequence message, final int counter)

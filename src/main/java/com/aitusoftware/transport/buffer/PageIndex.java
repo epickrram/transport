@@ -77,6 +77,7 @@ final class PageIndex
     boolean isPageCreated(final int pageNumber)
     {
         final int offset = toOffset(pageNumber);
+        // TODO >=, or race around buffer size could occur
         return slab.getIntVolatile(offset) == pageNumber;
     }
 

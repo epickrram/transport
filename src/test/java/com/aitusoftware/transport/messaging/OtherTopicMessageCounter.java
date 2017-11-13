@@ -5,7 +5,7 @@ import static org.junit.Assert.assertThat;
 
 final class OtherTopicMessageCounter implements OtherTopic
 {
-    private int messageCount;
+    private volatile int messageCount;
 
     @Override
     public void testParams(final boolean truth, final byte tByte, final short tShort,

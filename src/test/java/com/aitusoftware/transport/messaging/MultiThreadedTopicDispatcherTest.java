@@ -15,6 +15,8 @@ import org.junit.Test;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
@@ -42,6 +44,46 @@ public final class MultiThreadedTopicDispatcherTest
     }
 
     @Test
+    public void boundaryTest() throws Exception
+    {
+        final TestTopic proxy = factory.getPublisherProxy(TestTopic.class);
+        final OtherTopic paramTester = factory.getPublisherProxy(OtherTopic.class);
+
+        for (int i = 0; i < NUMBER_OF_TASKS; i++)
+        {
+            try
+            {
+                for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
+                {
+                    if ((j & 1L) == 0)
+                    {
+                        paramTester.testParams(false, (byte) -5, (short) -7, -11,
+                                Float.MAX_VALUE, Long.MIN_VALUE, Double.POSITIVE_INFINITY, "first", "second");
+                    }
+                    else
+                    {
+                        paramTester.testParams(true, (byte) 5, (short) 7, 11,
+                                13.7f, 17L, 19.37d, "first", "second");
+                    }
+                    if ((j & 1L) == 0)
+                    {
+                        proxy.say("hola", 7);
+                    }
+                    else
+                    {
+                        proxy.say("bonjour", 11);
+                    }
+                }
+            }
+            catch (RuntimeException e)
+            {
+                e.printStackTrace();
+            }
+        }
+
+    }
+
+    @Test
     public void shouldDispatchMessages() throws Exception
     {
         final TestTopicMessageCounter testTopicMessageCount = new TestTopicMessageCounter();
@@ -62,7 +104,7 @@ public final class MultiThreadedTopicDispatcherTest
                 {
                     for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
                     {
-                        if ((System.nanoTime() & 1L) == 0)
+                        if ((j & 1L) == 0)
                         {
                             proxy.say("hola", 7);
                         }
@@ -83,7 +125,7 @@ public final class MultiThreadedTopicDispatcherTest
                 {
                     for (int j = 0; j < NUMBER_OF_ITERATIONS; j++)
                     {
-                        if ((System.nanoTime() & 1L) == 0)
+                        if ((j & 1L) == 0)
                         {
                             paramTester.testParams(false, (byte) -5, (short) -7, -11,
                                     Float.MAX_VALUE, Long.MIN_VALUE, Double.POSITIVE_INFINITY, "first", "second");
@@ -116,7 +158,20 @@ public final class MultiThreadedTopicDispatcherTest
         final TopicDispatcherRecordHandler topicDispatcher =
                 new TopicDispatcherRecordHandler(subscriberMap);
 
-        new StreamingReader(pageCache, topicDispatcher, false).process();
+        final StreamingReader streamingReader = new StreamingReader(pageCache, topicDispatcher, true);
+        final Future<?> future = Executors.newSingleThreadExecutor().submit(streamingReader::process);
+
+        final long timeoutAt = System.currentTimeMillis() + 10_000L;
+        while (timeoutAt > System.currentTimeMillis())
+        {
+            if (testTopicMessageCount.getMessageCount() == expectedMessagesPerTopic &&
+                    otherTopicMessageCount.getMessageCount() == expectedMessagesPerTopic)
+            {
+                break;
+            }
+
+            Thread.sleep(1_000);
+        }
 
 
         assertThat(testTopicMessageCount.getMessageCount(), is(expectedMessagesPerTopic));

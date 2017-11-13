@@ -95,8 +95,7 @@ public final class PageCache
             while (!Thread.currentThread().isInterrupted())
             {
                 page.tryWriteEof();
-                if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) > pageNumber &&
-                        ((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() == pageNumber)
+                if (((int) CURRENT_PAGE_NUMBER_VH.get(this)) > pageNumber)
                 {
                     // another write has won, and will allocate a new page
                     while ((((Page) CURRENT_PAGE_VH.get(this)).getPageNumber() == pageNumber))
@@ -106,7 +105,7 @@ public final class PageCache
 
                     break;
                 }
-                pageNumber = (int) CURRENT_PAGE_NUMBER_VH.get(this);
+
                 if (CURRENT_PAGE_NUMBER_VH.compareAndSet(this, pageNumber, pageNumber + 1))
                 {
                     page.releaseReference();

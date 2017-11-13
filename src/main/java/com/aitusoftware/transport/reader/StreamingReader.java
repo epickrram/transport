@@ -61,7 +61,6 @@ public final class StreamingReader
         final int recordLength = Page.recordLength(header);
         if (Page.isReady(header))
         {
-
             final Slice slice = pageCache.slice(pageNumber, position, recordLength);
             try
             {
@@ -89,6 +88,7 @@ public final class StreamingReader
         {
             return false;
         }
+
         return pageCache.isPageAvailable(pageNumber);
     }
 

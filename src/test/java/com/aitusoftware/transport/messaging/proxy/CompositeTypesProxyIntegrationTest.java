@@ -31,6 +31,7 @@ import static org.junit.Assert.assertTrue;
 
 public final class CompositeTypesProxyIntegrationTest
 {
+    private static final int DEFAULT_CACHED_PAGES = 32;
     private final Path tempDir = Fixtures.tempDirectory();
     private PageCache pageCache;
     private PublisherFactory factory;
@@ -87,12 +88,10 @@ public final class CompositeTypesProxyIntegrationTest
         orderDetails.price(5 * i);
         orderDetails.orderId(11 * i);
         orderDetails.setIdentifier("order_");
-
         executionReport.reset();
         executionReport.isBid((i & 1) == 0);
         executionReport.orderId("exec_order_");
         executionReport.statusMessage("status_");
-
         executionReport.quantity(17 * i);
         executionReport.price(19 * i);
 
@@ -106,7 +105,7 @@ public final class CompositeTypesProxyIntegrationTest
             final long pauseUntil = System.nanoTime() + 1_000L;
             while (System.nanoTime() < pauseUntil)
             {
-                //spin
+                // spin
             }
         }
 
@@ -118,10 +117,7 @@ public final class CompositeTypesProxyIntegrationTest
         final long durationNanos = System.nanoTime() - startNanos;
         final double mps = messageCount / (durationNanos / (double)TimeUnit.SECONDS.toNanos(1));
 
-
-
         histogram.outputPercentileDistribution(System.out, 1d);
-
         receiver.interrupt();
         receiver.join();
         preloader.interrupt();
@@ -138,7 +134,18 @@ public final class CompositeTypesProxyIntegrationTest
         unmapper.interrupt();
         unmapper.join();
 
-        assertTrue(Math.abs(startMappedBufferCount - mappedBufferCount()) < 10);
+        final long timeoutAt = System.currentTimeMillis() + 10_000L;
+        while (System.currentTimeMillis() < timeoutAt)
+        {
+            if (mappedBufferCount() - startMappedBufferCount > DEFAULT_CACHED_PAGES)
+            {
+                Thread.sleep(1_000L);
+            }
+        }
+
+        final long mappedBufferDelta = mappedBufferCount() - startMappedBufferCount;
+        assertTrue(String.format("%d buffers remain mapped", mappedBufferDelta),
+                Math.abs(mappedBufferDelta) < DEFAULT_CACHED_PAGES);
     }
 
     @Test

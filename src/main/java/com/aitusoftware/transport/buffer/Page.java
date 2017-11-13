@@ -19,7 +19,6 @@ public final class Page
     private static final int READY_MARKER_MASK = 0b0100_0000_0000_0000_0000_0000_0000_0000;
 
     private static final int MAX_DATA_LENGTH = 0b0010_0000_0000_0000_0000_0000_0000_0000 - 1;
-    private static final int RECORD_LENGTH_MASK = 0b0001_1111_1111_1111_1111_1111_1111_1111;
     static final int ERR_MESSAGE_TOO_LARGE = -1;
     static final int ERR_NOT_ENOUGH_SPACE = -2;
 
@@ -42,6 +41,7 @@ public final class Page
         this.referenceCounter = new ReferenceCounter();
     }
 
+    // visible for testing, consider for removal
     WriteResult write(final ByteBuffer data)
     {
         final int remaining = data.remaining();
@@ -76,13 +76,17 @@ public final class Page
         {
             final int position = pageHeader.nextAvailableWritePosition();
 
-            if (position + remaining > availableDataLength())
+            if (position + remaining + Record.HEADER_LENGTH > availableDataLength())
+            {
+                return ERR_NOT_ENOUGH_SPACE;
+            }
+            if ((slab.getIntVolatile(toPageOffset(position)) & EOF_MARKER) != 0)
             {
                 return ERR_NOT_ENOUGH_SPACE;
             }
             if (claimPosition(position))
             {
-                pageHeader.updateNextWritePosition(position + remaining + Record.HEADER_LENGTH);
+                pageHeader.updateNextWritePosition(Offsets.getAlignedPosition(position + remaining + Record.HEADER_LENGTH));
                 return position;
             }
         }
