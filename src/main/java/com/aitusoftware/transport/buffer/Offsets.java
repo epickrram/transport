@@ -5,14 +5,11 @@ public final class Offsets
     private static final long CACHE_LINE_SIZE = 64L;
     private static final long CACHE_LINE_MASK = CACHE_LINE_SIZE - 1L;
 
-    private final int pageSize;
     private final int pageNumberShift;
     private final long pageOffsetMask;
 
     Offsets(final int pageSize)
     {
-        this.pageSize = pageSize;
-
         if (Integer.bitCount(pageSize) != 1)
         {
             throw new IllegalArgumentException("pageSize must be a power of two");

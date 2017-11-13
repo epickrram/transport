@@ -42,7 +42,6 @@ public final class PageCache
     private static final ThreadLocal<Slice> SLICE =
             ThreadLocal.withInitial(Slice::new);
     private final PageAllocator allocator;
-    private final Path path;
     private final int pageSize;
     private final PageIndex pageIndex;
     private final Unmapper unmapper = new Unmapper();
@@ -53,8 +52,7 @@ public final class PageCache
     private PageCache(final int pageSize, final Path path, final PageIndex pageIndex)
     {
         // TODO should handle initialisation from existing file-system resources
-        this.path = path;
-        allocator = new PageAllocator(this.path, pageSize, pageIndex, unmapper);
+        allocator = new PageAllocator(path, pageSize, pageIndex, unmapper);
         CURRENT_PAGE_VH.setRelease(this, allocator.safelyAllocatePage(INITIAL_PAGE_NUMBER));
         CURRENT_PAGE_NUMBER_VH.setRelease(this, INITIAL_PAGE_NUMBER);
         this.pageSize = pageSize;
@@ -85,7 +83,7 @@ public final class PageCache
         else if (position == Page.ERR_MESSAGE_TOO_LARGE)
         {
             page.releaseReference();
-            throw new RuntimeException(String.format(
+            throw new IllegalArgumentException(String.format(
                     "Message too large for current page: %s", currentPage));
         }
         else if (position == Page.ERR_NOT_ENOUGH_SPACE)

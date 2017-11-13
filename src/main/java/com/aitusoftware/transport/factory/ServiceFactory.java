@@ -32,7 +32,6 @@ public final class ServiceFactory
     public static final String SUBSCRIBER_PAGE_CACHE_PATH = "sub";
     public static final int PAGE_SIZE = 1 << 18;
 
-    private final Path pageCachePath;
     private final PublisherFactory publisherFactory;
     private final PageCache subscriberPageCache;
     private final AddressSpace addressSpace;
@@ -50,7 +49,6 @@ public final class ServiceFactory
             final Path pageCachePath, final ServerSocketFactory socketFactory,
             final AddressSpace addressSpace) throws IOException
     {
-        this.pageCachePath = pageCachePath;
         publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
         subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
         this.addressSpace = addressSpace;

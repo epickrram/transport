@@ -30,5 +30,6 @@ public final class OrderGateway implements OrderNotifications
     @Override
     public void cancelOrder(final CharSequence orderId, final int ecnId)
     {
+        // no-op
     }
 }

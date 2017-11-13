@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 public final class ProxyIntegrationTest
@@ -47,6 +48,8 @@ public final class ProxyIntegrationTest
                 subscriberFactory.getSubscriber(TestTopic.class, (message, counter) -> {
 
         });
+
+        assertNotNull(subscriber);
     }
 
     @Test

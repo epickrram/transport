@@ -29,7 +29,7 @@ public class StreamingReaderTest
     {
         Fixtures.writeMessages(message, pageCache, MESSAGE_COUNT);
 
-        createReader(false).process();
+        createReader().process();
 
         assertThat(handler.messageCount, is(MESSAGE_COUNT));
     }
@@ -39,12 +39,12 @@ public class StreamingReaderTest
     {
         Fixtures.writeMessages(message, pageCache, MESSAGE_COUNT);
 
-        createReader(true).process();
+        createReader().process();
 
         assertThat(handler.messageCount, is(MESSAGE_COUNT));
     }
 
-    private StreamingReader createReader(final boolean zeroCopy)
+    private StreamingReader createReader()
     {
         return new StreamingReader(pageCache, handler, false);
     }

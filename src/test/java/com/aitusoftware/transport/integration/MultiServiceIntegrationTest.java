@@ -12,8 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
@@ -26,8 +24,6 @@ public final class MultiServiceIntegrationTest
     private MarketData marketDataPublisher;
     private Service orderGatewayService;
     private TraderBot traderBot;
-    private ServiceFactory orderGatewayServiceFactory;
-    private ServiceFactory traderBotServiceFactory;
 
     @Before
     public void setUp() throws Exception
@@ -46,7 +42,8 @@ public final class MultiServiceIntegrationTest
                 traderBotListenAddr.socket().getLocalPort(),
                 orderGatewayListenAddr.socket().getLocalPort());
 
-        traderBotServiceFactory = new ServiceFactory(traderBotPath, new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace);
+        final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace);
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
         traderBotServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, null));
@@ -56,7 +53,8 @@ public final class MultiServiceIntegrationTest
                 new SubscriberDefinition<>(TradeNotifications.class, traderBot, null));
         this.traderBotService = traderBotServiceFactory.create();
 
-        orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath, new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace);
+        final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
+                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace);
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
         orderGatewayServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));
@@ -85,12 +83,6 @@ public final class MultiServiceIntegrationTest
     {
         assertTrue(traderBotService.stop(5, TimeUnit.SECONDS));
         assertTrue(orderGatewayService.stop(5, TimeUnit.SECONDS));
-    }
-
-    private static InetSocketAddress toLocalHostAddress(final ServerSocketChannel orderGatewayListenAddr) throws IOException
-    {
-        return new InetSocketAddress("127.0.0.1",
-                ((InetSocketAddress) orderGatewayListenAddr.getLocalAddress()).getPort());
     }
 
     private static final class DelegatingAddressSpace implements AddressSpace

@@ -17,7 +17,7 @@ final class FixedServerSocketFactory implements ServerSocketFactory
     @Override
     public void registerTopicAddress(final int topicId, final SocketAddress socketAddress)
     {
-
+        // no-op
     }
 
     @Override

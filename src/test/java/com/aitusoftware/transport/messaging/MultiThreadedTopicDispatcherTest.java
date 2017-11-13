@@ -16,13 +16,13 @@ import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @Ignore
 public final class MultiThreadedTopicDispatcherTest
@@ -78,6 +78,7 @@ public final class MultiThreadedTopicDispatcherTest
             catch (RuntimeException e)
             {
                 e.printStackTrace();
+                fail(e.getMessage());
             }
         }
 
@@ -159,7 +160,7 @@ public final class MultiThreadedTopicDispatcherTest
                 new TopicDispatcherRecordHandler(subscriberMap);
 
         final StreamingReader streamingReader = new StreamingReader(pageCache, topicDispatcher, true);
-        final Future<?> future = Executors.newSingleThreadExecutor().submit(streamingReader::process);
+        Executors.newSingleThreadExecutor().submit(streamingReader::process);
 
         final long timeoutAt = System.currentTimeMillis() + 10_000L;
         while (timeoutAt > System.currentTimeMillis())

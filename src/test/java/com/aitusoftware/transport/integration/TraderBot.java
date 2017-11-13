@@ -55,6 +55,7 @@ public final class TraderBot implements MarketData, MarketNews, TradeNotificatio
     @Override
     public void onOrderRejected(final CharSequence symbol, final CharSequence orderId, final int ecnId, final int rejectionReason)
     {
+        // no-op
     }
 
     CountDownLatch getOrderAcceptedLatch()

@@ -20,6 +20,6 @@ public final class BufferUtil
                 return bean.getCount();
             }
         }
-        throw new RuntimeException("Could not find number of mapped buffers");
+        throw new IllegalStateException("Could not find number of mapped buffers");
     }
 }
