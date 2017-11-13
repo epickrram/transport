@@ -1,61 +1,76 @@
 package com.aitusoftware.transport.buffer;
 
 
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.MappedByteBuffer;
 
 public final class Slab
 {
+    private static final MethodHandle UNMAP;
+    private static final VarHandle LONG_ARRAY_VIEW = MethodHandles.byteBufferViewVarHandle(long[].class, ByteOrder.nativeOrder());
+    private static final VarHandle INT_ARRAY_VIEW = MethodHandles.byteBufferViewVarHandle(int[].class, ByteOrder.nativeOrder());
     private final ByteBuffer backingStore;
-    private final VarHandle longArrayView;
-    private final VarHandle intArrayView;
     private final ThreadLocal<ByteBuffer> threadLocalSlice;
+
+    static
+    {
+        try
+        {
+            final Class<?> fileChannelClass = Class.forName("sun.nio.ch.FileChannelImpl");
+            final Method unmapMethod = fileChannelClass.getDeclaredMethod("unmap", MappedByteBuffer.class);
+            unmapMethod.setAccessible(true);
+            UNMAP = MethodHandles.lookup().unreflect(unmapMethod);
+        }
+        catch (IllegalAccessException | ClassNotFoundException | NoSuchMethodException e)
+        {
+            throw new IllegalStateException("Cannot acquire MethodHandle to unmap()", e);
+        }
+    }
 
     public Slab(final ByteBuffer backingStore)
     {
         this.backingStore = backingStore;
-        // TODO should be static final
-        longArrayView = MethodHandles.byteBufferViewVarHandle(long[].class, ByteOrder.nativeOrder());
-        intArrayView = MethodHandles.byteBufferViewVarHandle(int[].class, ByteOrder.nativeOrder());
         threadLocalSlice = ThreadLocal.withInitial(backingStore::slice);
     }
 
     public boolean compareAndSetLong(final int offset, final long expected, final long updated)
     {
-        return longArrayView.compareAndSet(backingStore, offset, expected, updated);
+        return LONG_ARRAY_VIEW.compareAndSet(backingStore, offset, expected, updated);
     }
 
     public long getAndAddLong(final int offset, final long delta)
     {
-        return (long) longArrayView.getAndAdd(backingStore, offset, delta);
+        return (long) LONG_ARRAY_VIEW.getAndAdd(backingStore, offset, delta);
     }
 
     public long getLongVolatile(final int offset)
     {
-        return (long) longArrayView.getVolatile(backingStore, offset);
+        return (long) LONG_ARRAY_VIEW.getVolatile(backingStore, offset);
     }
 
     public boolean compareAndSetInt(final int offset, final int expected, final int updated)
     {
-        return intArrayView.compareAndSet(backingStore, offset, expected, updated);
+        return INT_ARRAY_VIEW.compareAndSet(backingStore, offset, expected, updated);
     }
 
     public int getAndAddInt(final int offset, final int delta)
     {
-        return (int) intArrayView.getAndAdd(backingStore, offset, delta);
+        return (int) INT_ARRAY_VIEW.getAndAdd(backingStore, offset, delta);
     }
 
     public int getIntVolatile(final int offset)
     {
-        return (int) intArrayView.getVolatile(backingStore, offset);
+        return (int) INT_ARRAY_VIEW.getVolatile(backingStore, offset);
     }
 
     public void writeOrderedInt(final int offset, final int value)
     {
-        intArrayView.setRelease(backingStore, offset, value);
+        INT_ARRAY_VIEW.setRelease(backingStore, offset, value);
     }
 
     public void copy(final int offset, final ByteBuffer source)
@@ -100,17 +115,14 @@ public final class Slab
     {
         try
         {
-            final Class<?> cls = Class.forName("sun.nio.ch.DirectBuffer");
-            final Method method = cls.getDeclaredMethod("cleaner");
-            method.setAccessible(true);
-            final Object cleaner = method.invoke(backingStore);
-            final Class<?> cls2 = Class.forName("jdk.internal.ref.Cleaner");
-            final Method m2 = cls2.getDeclaredMethod("clean");
-            m2.invoke(cleaner);
+            if (backingStore instanceof MappedByteBuffer)
+            {
+                UNMAP.invokeExact((MappedByteBuffer) backingStore);
+            }
         }
-        catch (Throwable throwable)
+        catch (Throwable e)
         {
-            throwable.printStackTrace();
+            throw new IllegalArgumentException("Unable to invoke unmap method", e);
         }
     }
 }

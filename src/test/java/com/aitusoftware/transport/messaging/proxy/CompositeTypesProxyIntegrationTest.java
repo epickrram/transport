@@ -3,6 +3,7 @@ package com.aitusoftware.transport.messaging.proxy;
 import com.aitusoftware.transport.buffer.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.Preloader;
+import com.aitusoftware.transport.memory.BufferUtil;
 import com.aitusoftware.transport.messaging.ExecutionReport;
 import com.aitusoftware.transport.messaging.ExecutionReportBuilder;
 import com.aitusoftware.transport.messaging.OrderDetails;
@@ -14,8 +15,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.lang.management.BufferPoolMXBean;
-import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.LinkedList;
@@ -48,7 +47,7 @@ public final class CompositeTypesProxyIntegrationTest
     @Test
     public void speedTest() throws Exception
     {
-        final long startMappedBufferCount = mappedBufferCount();
+        final long startMappedBufferCount = BufferUtil.mappedBufferCount();
         final Thread preloader = new Thread(new Preloader(pageCache)::execute);
         preloader.start();
         final Thread unmapper = new Thread(pageCache.getUnmapper()::execute);
@@ -137,13 +136,13 @@ public final class CompositeTypesProxyIntegrationTest
         final long timeoutAt = System.currentTimeMillis() + 10_000L;
         while (System.currentTimeMillis() < timeoutAt)
         {
-            if (mappedBufferCount() - startMappedBufferCount > DEFAULT_CACHED_PAGES)
+            if (BufferUtil.mappedBufferCount() - startMappedBufferCount > DEFAULT_CACHED_PAGES)
             {
                 Thread.sleep(1_000L);
             }
         }
 
-        final long mappedBufferDelta = mappedBufferCount() - startMappedBufferCount;
+        final long mappedBufferDelta = BufferUtil.mappedBufferCount() - startMappedBufferCount;
         assertTrue(String.format("%d buffers remain mapped", mappedBufferDelta),
                 Math.abs(mappedBufferDelta) < DEFAULT_CACHED_PAGES);
     }
@@ -233,19 +232,6 @@ public final class CompositeTypesProxyIntegrationTest
             assertThat(sent.executionReport.statusMessage().toString(),
                     is(received.executionReport.statusMessage().toString()));
         }
-    }
-
-    private static long mappedBufferCount()
-    {
-        final List<BufferPoolMXBean> beans = ManagementFactory.getPlatformMXBeans(BufferPoolMXBean.class);
-        for (BufferPoolMXBean bean : beans)
-        {
-            if (bean.getName().equals("mapped"))
-            {
-                return bean.getCount();
-            }
-        }
-        throw new RuntimeException("Could not find number of mapped buffers");
     }
 
 

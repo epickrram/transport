@@ -38,7 +38,7 @@ checkstyle {
 }
 
 group = 'com.aitusoftware'
-version = '0.2.0'
+version = '0.2.1'
 
 idea {
     project {
@@ -77,7 +77,9 @@ compileTestJava {
             'com.aitusoftware.proxygen.MessageGenerator']
 }
 
-
+test {
+    jvmArgs += ['--add-opens', 'java.base/sun.nio.ch=ALL-UNNAMED']
+}
 
 dependencies {
     testCompile 'junit:junit:4.12'
