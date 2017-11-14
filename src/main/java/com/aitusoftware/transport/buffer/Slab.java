@@ -3,8 +3,8 @@ package com.aitusoftware.transport.buffer;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
-import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.MappedByteBuffer;
@@ -12,8 +12,10 @@ import java.nio.MappedByteBuffer;
 public final class Slab
 {
     private static final MethodHandle UNMAP;
-    private static final VarHandle LONG_ARRAY_VIEW = MethodHandles.byteBufferViewVarHandle(long[].class, ByteOrder.nativeOrder());
-    private static final VarHandle INT_ARRAY_VIEW = MethodHandles.byteBufferViewVarHandle(int[].class, ByteOrder.nativeOrder());
+    private static final VarHandle LONG_ARRAY_VIEW =
+            MethodHandles.byteBufferViewVarHandle(long[].class, ByteOrder.nativeOrder());
+    private static final VarHandle INT_ARRAY_VIEW =
+            MethodHandles.byteBufferViewVarHandle(int[].class, ByteOrder.nativeOrder());
     private final ByteBuffer backingStore;
     private final ThreadLocal<ByteBuffer> threadLocalSlice;
 
@@ -22,9 +24,8 @@ public final class Slab
         try
         {
             final Class<?> fileChannelClass = Class.forName("sun.nio.ch.FileChannelImpl");
-            final Method unmapMethod = fileChannelClass.getDeclaredMethod("unmap", MappedByteBuffer.class);
-            unmapMethod.setAccessible(true);
-            UNMAP = MethodHandles.lookup().unreflect(unmapMethod);
+            UNMAP = MethodHandles.privateLookupIn(fileChannelClass, MethodHandles.lookup()).
+                    findStatic(fileChannelClass, "unmap", MethodType.methodType(void.class, MappedByteBuffer.class));
         }
         catch (IllegalAccessException | ClassNotFoundException | NoSuchMethodException e)
         {
