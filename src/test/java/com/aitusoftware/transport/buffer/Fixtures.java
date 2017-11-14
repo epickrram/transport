@@ -12,12 +12,12 @@ import java.util.stream.Stream;
 
 public final class Fixtures
 {
+    private static final Collection<Path> PATHS_TO_DELETE =
+            new ConcurrentLinkedQueue<>();
+
     private Fixtures()
     {
     }
-
-    private static final Collection<Path> PATHS_TO_DELETE =
-            new ConcurrentLinkedQueue<>();
 
     static
     {

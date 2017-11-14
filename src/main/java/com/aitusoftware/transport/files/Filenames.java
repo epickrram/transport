@@ -4,11 +4,11 @@ import java.nio.file.Path;
 
 public final class Filenames
 {
+    public static final String SUFFIX = ".trx";
+
     private Filenames()
     {
     }
-
-    public static final String SUFFIX = ".trx";
 
     public static Path forPageNumber(final int pageNumber, final Path path)
     {
