@@ -1,11 +1,13 @@
 package com.aitusoftware.transport.buffer;
 
 import com.aitusoftware.transport.files.Directories;
+import com.aitusoftware.transport.files.Filenames;
 
 import java.io.IOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
@@ -46,6 +48,7 @@ public final class PageCache
     private final PageIndex pageIndex;
     private final Unmapper unmapper = new Unmapper();
     private final LoadedPageCache loadedPageCache;
+    private final Path path;
     @SuppressWarnings("unused")
     private volatile Page currentPage;
     @SuppressWarnings("unused")
@@ -60,6 +63,7 @@ public final class PageCache
         this.pageSize = pageSize;
         this.pageIndex = pageIndex;
         loadedPageCache = new LoadedPageCache(allocator);
+        this.path = path;
     }
 
     /**
@@ -151,8 +155,8 @@ public final class PageCache
     {
         if (pageIndex.isLessThanLowestTrackedPageNumber(pageNumber))
         {
-            // TODO fall-back to file-system lookup
-            throw new UnsupportedOperationException();
+            final Path pagePath = Filenames.forPageNumber(pageNumber, path);
+            return Files.exists(pagePath);
         }
         return pageIndex.isPageCreated(pageNumber);
     }

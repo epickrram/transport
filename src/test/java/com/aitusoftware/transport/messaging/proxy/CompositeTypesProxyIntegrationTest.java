@@ -122,6 +122,10 @@ public final class CompositeTypesProxyIntegrationTest
         unmapper.join();
 
         waitForMemoryCleanup(startMappedBufferCount);
+        final long mappedBufferDelta = BufferUtil.mappedBufferCount() - startMappedBufferCount;
+        assertTrue(String.format("%d buffers remain mapped", mappedBufferDelta),
+                Math.abs(mappedBufferDelta) < DEFAULT_CACHED_PAGES);
+
     }
 
     @Test
@@ -221,10 +225,6 @@ public final class CompositeTypesProxyIntegrationTest
                 Thread.sleep(1_000L);
             }
         }
-
-        final long mappedBufferDelta = BufferUtil.mappedBufferCount() - startMappedBufferCount;
-        assertTrue(String.format("%d buffers remain mapped", mappedBufferDelta),
-                Math.abs(mappedBufferDelta) < DEFAULT_CACHED_PAGES);
     }
 
     private void setFields(final OrderDetailsBuilder orderDetails, final ExecutionReportBuilder executionReport)
