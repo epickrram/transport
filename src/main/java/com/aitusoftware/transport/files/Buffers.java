@@ -7,9 +7,11 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-public enum Buffers
+public final class Buffers
 {
-    BUFFERS;
+    private Buffers()
+    {
+    }
 
     public static ByteBuffer map(final Path path, final long size) throws IOException
     {

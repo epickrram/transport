@@ -4,13 +4,12 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static com.aitusoftware.transport.buffer.SlabFactory.SLAB_FACTORY;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public final class PageTest
 {
-    private final Page page = new Page(SLAB_FACTORY.createSlab(8192), 0, null);
+    private final Page page = new Page(SlabFactory.createSlab(8192), 0, null);
 
     @Test
     public void shouldPutAndRetrieveRecord() throws Exception

@@ -2,9 +2,11 @@ package com.aitusoftware.transport.files;
 
 import java.nio.file.Path;
 
-public enum Filenames
+public final class Filenames
 {
-    FILENAMES;
+    private Filenames()
+    {
+    }
 
     public static final String SUFFIX = ".trx";
 
@@ -13,13 +15,13 @@ public enum Filenames
         return path.resolve(formatPageNumber(pageNumber));
     }
 
-    public static String formatPageNumber(final int pageNumber)
-    {
-        return String.format("%018d" + SUFFIX, pageNumber);
-    }
-
     public static int toPageNumber(final String filename)
     {
         return Integer.parseInt(filename.substring(0, filename.indexOf('.')));
+    }
+
+    private static String formatPageNumber(final int pageNumber)
+    {
+        return String.format("%018d" + SUFFIX, pageNumber);
     }
 }

@@ -67,7 +67,7 @@ final class PageAllocator
         try
         {
             final ByteBuffer buffer = Buffers.map(pagePath, pageSize + PageHeader.HEADER_SIZE);
-            final Page page = new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
+            final Page page = new Page(SlabFactory.createSlab(buffer), pageNumber, pagePath);
             page.claimReference();
 
             unmapper.registerPage(page);

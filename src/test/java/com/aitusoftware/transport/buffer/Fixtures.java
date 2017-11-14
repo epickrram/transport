@@ -10,9 +10,11 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.stream.Stream;
 
-public enum Fixtures
+public final class Fixtures
 {
-    FIXTURES;
+    private Fixtures()
+    {
+    }
 
     private static final Collection<Path> PATHS_TO_DELETE =
             new ConcurrentLinkedQueue<>();

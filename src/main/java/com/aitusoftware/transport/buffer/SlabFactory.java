@@ -2,16 +2,18 @@ package com.aitusoftware.transport.buffer;
 
 import java.nio.ByteBuffer;
 
-public enum SlabFactory
+public final class SlabFactory
 {
-    SLAB_FACTORY;
+    private SlabFactory()
+    {
+    }
 
-    public Slab createSlab(final int size)
+    public static Slab createSlab(final int size)
     {
         return new Slab(ByteBuffer.allocateDirect(size));
     }
 
-    public Slab createSlab(final ByteBuffer buffer)
+    public static Slab createSlab(final ByteBuffer buffer)
     {
         return new Slab(buffer);
     }

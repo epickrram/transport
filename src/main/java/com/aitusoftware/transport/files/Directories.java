@@ -5,9 +5,11 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-public enum Directories
+public final class Directories
 {
-    DIRECTORIES;
+    private Directories()
+    {
+    }
 
     public static void ensureDirectoryExists(final Path path)
     {

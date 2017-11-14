@@ -37,8 +37,7 @@ final class PageIndex
             // already created
         }
 
-        final PageIndex pageIndex = new PageIndex(SlabFactory.SLAB_FACTORY.
-                createSlab(Buffers.map(
+        final PageIndex pageIndex = new PageIndex(SlabFactory.createSlab(Buffers.map(
                         indexFile, FILE_SIZE)), path);
         pageIndex.refresh();
         return pageIndex;

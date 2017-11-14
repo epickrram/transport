@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -63,9 +64,13 @@ public class PageCacheTest
         final MessageValidator validator = new MessageValidator();
         final StreamingReader reader = new StreamingReader(newPageCache, validator, true);
 
-        Executors.newSingleThreadExecutor().submit(reader::process);
+        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(reader::process);
 
         validator.waitForMessageCount(totalMessageCount);
+
+        executor.shutdownNow();
+
         final int[] messages = validator.getMessages();
         assertThat(messages.length, is(totalMessageCount));
         int expected = 0;
