@@ -9,7 +9,8 @@ import static org.junit.Assert.assertThat;
 
 public final class PageTest
 {
-    private final Page page = new Page(SlabFactory.createSlab(8192), 0, null);
+    private static final int PAGE_SIZE = 8192;
+    private final Page page = new Page(SlabFactory.createSlab(PAGE_SIZE), 0, null);
 
     @Test
     public void shouldPutAndRetrieveRecord() throws Exception
@@ -59,6 +60,35 @@ public final class PageTest
     public void shouldBeReady() throws Exception
     {
         assertThat(Page.isReady(Page.CLAIMED_MARKER | Page.READY_MARKER), is(true));
+    }
+
+    @Test
+    public void shouldFillPageEntirelyWithSingleMessage() throws Exception
+    {
+        final int maximumPayloadSize = PAGE_SIZE - Record.HEADER_LENGTH - PageHeader.HEADER_SIZE;
+
+        assertThat(page.acquireSpaceInBuffer(maximumPayloadSize), is(0));
+    }
+
+    @Test
+    public void shouldFillPageEntirelyWithMultipleMessages() throws Exception
+    {
+        final int maximumPayloadSize = PAGE_SIZE - Record.HEADER_LENGTH - PageHeader.HEADER_SIZE;
+        final int firstMessageLength = maximumPayloadSize - 500;
+        // padding to cache alignment
+        final int padding = 64 - (firstMessageLength % 64);
+        final int secondMessageLength = 500 - Record.HEADER_LENGTH - padding;
+
+        assertThat(page.acquireSpaceInBuffer(firstMessageLength), is(0));
+        assertThat(page.acquireSpaceInBuffer(secondMessageLength), is(firstMessageLength + padding));
+    }
+
+    @Test
+    public void shouldIndicateMessageTooLarge() throws Exception
+    {
+        final int maximumPayloadSize = PAGE_SIZE - Record.HEADER_LENGTH - PageHeader.HEADER_SIZE;
+
+        assertThat(page.acquireSpaceInBuffer(maximumPayloadSize + 1), is(Page.ERR_NOT_ENOUGH_SPACE));
     }
 
     private static long decode(final ByteBuffer source)
