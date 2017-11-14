@@ -31,16 +31,13 @@ final class LoadedPageCache
     {
         final int cachedPageIndex = toCachedPageIndex(pageNumber);
         Page cachedPage = cachedPages.get(cachedPageIndex);
-        if (cachedPage != null)
+        if (cachedPage != null && cachedPage.getPageNumber() == pageNumber)
         {
-            if (cachedPage.getPageNumber() == pageNumber)
+            if (!cachedPage.claimReference())
             {
-                if (!cachedPage.claimReference())
-                {
-                    return acquire(pageNumber);
-                }
-                return cachedPage;
+                return acquire(pageNumber);
             }
+            return cachedPage;
         }
 
         final Page existing = pageAllocator.apply(pageNumber);

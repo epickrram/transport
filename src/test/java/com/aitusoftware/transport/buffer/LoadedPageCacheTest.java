@@ -33,7 +33,7 @@ public class LoadedPageCacheTest
         assertThat(pageCreateCount.get(1), is(1));
         assertThat(page1.referenceCount(), is(1));
 
-        final Page page5 = cache.acquire(5);
+        cache.acquire(5);
 
         assertThat(pageCreateCount.get(5), is(1));
         assertThat(pageCreateCount.size(), is(2));

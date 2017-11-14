@@ -1,7 +1,6 @@
 package com.aitusoftware.transport.net;
 
 import com.aitusoftware.transport.reader.RecordHandler;
-import org.agrona.collections.Int2ObjectHashMap;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -10,7 +9,6 @@ import java.nio.channels.SocketChannel;
 public final class OutputChannel implements RecordHandler
 {
     private final TopicToChannelMapper channelMapper;
-    private final Int2ObjectHashMap<ByteBuffer> enqueuedData = new Int2ObjectHashMap<>();
     private final ByteBuffer[] srcs = new ByteBuffer[2];
     private final ByteBuffer lengthBuffer;
 

@@ -80,26 +80,14 @@ public final class CompositeTypesProxyIntegrationTest
         final Thread receiver = new Thread(streamingReader::process);
         receiver.start();
         final String venueResponse = "response_";
-        final int timestamp = 7 * 7;
-        final int i = 42;
-        orderDetails.reset();
-        orderDetails.quantity(3 * i);
-        orderDetails.price(5 * i);
-        orderDetails.orderId(11 * i);
-        orderDetails.setIdentifier("order_");
-        executionReport.reset();
-        executionReport.isBid((i & 1) == 0);
-        executionReport.orderId("exec_order_");
-        executionReport.statusMessage("status_");
-        executionReport.quantity(17 * i);
-        executionReport.price(19 * i);
+        setFields(orderDetails, executionReport);
 
         final int messageCount = 50_000_000;
         final long startNanos = System.nanoTime();
         for (int j = 0; j < messageCount; j++)
         {
             executionReport.timestamp(System.nanoTime());
-            proxy.sendData(j, orderDetails, executionReport, venueResponse, timestamp);
+            proxy.sendData(j, orderDetails, executionReport, venueResponse, 7 * 7);
 
             final long pauseUntil = System.nanoTime() + 1_000L;
             while (System.nanoTime() < pauseUntil)
@@ -133,18 +121,7 @@ public final class CompositeTypesProxyIntegrationTest
         unmapper.interrupt();
         unmapper.join();
 
-        final long timeoutAt = System.currentTimeMillis() + 10_000L;
-        while (System.currentTimeMillis() < timeoutAt)
-        {
-            if (BufferUtil.mappedBufferCount() - startMappedBufferCount > DEFAULT_CACHED_PAGES)
-            {
-                Thread.sleep(1_000L);
-            }
-        }
-
-        final long mappedBufferDelta = BufferUtil.mappedBufferCount() - startMappedBufferCount;
-        assertTrue(String.format("%d buffers remain mapped", mappedBufferDelta),
-                Math.abs(mappedBufferDelta) < DEFAULT_CACHED_PAGES);
+        waitForMemoryCleanup(startMappedBufferCount);
     }
 
     @Test
@@ -157,9 +134,9 @@ public final class CompositeTypesProxyIntegrationTest
                 subscriberFactory.getSubscriber(CompositeTopic.class,
                         (id, orderDetails, executionReport, venueResponse, timestamp) -> {
 
-                    receivedMessages.add(new ArgumentContainer(
-                            id, orderDetails.heapCopy(), executionReport.heapCopy(), venueResponse.toString(), timestamp));
-                });
+                            receivedMessages.add(new ArgumentContainer(
+                                    id, orderDetails.heapCopy(), executionReport.heapCopy(), venueResponse.toString(), timestamp));
+                        });
 
         for (int i = 0; i < 1; i++)
         {
@@ -232,6 +209,37 @@ public final class CompositeTypesProxyIntegrationTest
             assertThat(sent.executionReport.statusMessage().toString(),
                     is(received.executionReport.statusMessage().toString()));
         }
+    }
+
+    private void waitForMemoryCleanup(final long startMappedBufferCount) throws InterruptedException
+    {
+        final long timeoutAt = System.currentTimeMillis() + 10_000L;
+        while (System.currentTimeMillis() < timeoutAt)
+        {
+            if (BufferUtil.mappedBufferCount() - startMappedBufferCount > DEFAULT_CACHED_PAGES)
+            {
+                Thread.sleep(1_000L);
+            }
+        }
+
+        final long mappedBufferDelta = BufferUtil.mappedBufferCount() - startMappedBufferCount;
+        assertTrue(String.format("%d buffers remain mapped", mappedBufferDelta),
+                Math.abs(mappedBufferDelta) < DEFAULT_CACHED_PAGES);
+    }
+
+    private void setFields(final OrderDetailsBuilder orderDetails, final ExecutionReportBuilder executionReport)
+    {
+        orderDetails.reset();
+        orderDetails.quantity(3 * 42);
+        orderDetails.price(5 * 42);
+        orderDetails.orderId(11 * 42);
+        orderDetails.setIdentifier("order_");
+        executionReport.reset();
+        executionReport.isBid((42 & 1) == 0);
+        executionReport.orderId("exec_order_");
+        executionReport.statusMessage("status_");
+        executionReport.quantity(17 * 42);
+        executionReport.price(19 * 42);
     }
 
 

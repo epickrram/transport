@@ -107,9 +107,4 @@ public final class StreamingReader
     {
         return messageCount.get();
     }
-
-    private static int toNextPowerOfTwo(final int input)
-    {
-        return Integer.highestOneBit(input) * 2;
-    }
 }

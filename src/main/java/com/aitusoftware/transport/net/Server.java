@@ -104,7 +104,7 @@ public final class Server
         }
         catch (InterruptedException e)
         {
-            throw new RuntimeException("Interrupted while waiting for startup", e);
+            throw new IllegalStateException("Interrupted while waiting for startup", e);
         }
     }
 

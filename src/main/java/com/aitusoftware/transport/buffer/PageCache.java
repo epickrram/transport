@@ -46,7 +46,9 @@ public final class PageCache
     private final PageIndex pageIndex;
     private final Unmapper unmapper = new Unmapper();
     private final LoadedPageCache loadedPageCache;
+    @SuppressWarnings("unused")
     private volatile Page currentPage;
+    @SuppressWarnings("unused")
     private volatile int currentPageNumber;
 
     private PageCache(final int pageSize, final Path path, final PageIndex pageIndex)
