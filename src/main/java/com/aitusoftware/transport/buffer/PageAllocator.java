@@ -17,7 +17,6 @@ final class PageAllocator
 {
     private static final long MAX_RACE_TIME_SECONDS = 5L;
 
-    private final boolean loadPageIntoMemory = false;
     private final Path path;
     private final int pageSize;
     private final PageIndex pageIndex;
@@ -67,7 +66,7 @@ final class PageAllocator
         final Path pagePath = Filenames.forPageNumber(pageNumber, path);
         try
         {
-            final ByteBuffer buffer = Buffers.map(pagePath, loadPageIntoMemory, pageSize + PageHeader.HEADER_SIZE);
+            final ByteBuffer buffer = Buffers.map(pagePath, pageSize + PageHeader.HEADER_SIZE);
             final Page page = new Page(SlabFactory.SLAB_FACTORY.createSlab(buffer), pageNumber, pagePath);
             page.claimReference();
 
