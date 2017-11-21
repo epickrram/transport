@@ -1,7 +1,7 @@
 package com.aitusoftware.transport.buffer;
 
 import com.aitusoftware.transport.threads.Idler;
-import com.aitusoftware.transport.threads.PausingIdler;
+import com.aitusoftware.transport.threads.Idlers;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +16,7 @@ public final class Preloader
     private final PageCache pageCache;
     private final PageIndex pageIndex;
     private final ByteBuffer buffer = ByteBuffer.allocate(1);
-    private final Idler idler = new PausingIdler(1, TimeUnit.MICROSECONDS);
+    private final Idler idler = Idlers.staticPause(1, TimeUnit.MICROSECONDS);
     private boolean pageZeroLoaded = false;
     private int lastLoadedPage = -1;
 

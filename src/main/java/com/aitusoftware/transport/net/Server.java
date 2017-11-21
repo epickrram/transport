@@ -3,7 +3,7 @@ package com.aitusoftware.transport.net;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.WritableRecord;
 import com.aitusoftware.transport.threads.Idler;
-import com.aitusoftware.transport.threads.PausingIdler;
+import com.aitusoftware.transport.threads.Idlers;
 import org.agrona.collections.IntHashSet;
 
 import java.io.IOException;
@@ -24,7 +24,7 @@ public final class Server
     private final PageCache subscriberPageCache;
     private final ServerTopicChannel[] serverSocketChannels;
     private final List<TopicChannel> channels = new ArrayList<>();
-    private final Idler idler = new PausingIdler(1, TimeUnit.MILLISECONDS);
+    private final Idler idler = Idlers.staticPause(1, TimeUnit.MILLISECONDS);
     private final CountDownLatch listenerStarted = new CountDownLatch(1);
 
     public Server(final IntHashSet subscriberTopicIds,
@@ -89,6 +89,10 @@ public final class Server
             if (!dataProcessed)
             {
                 idler.idle();
+            }
+            else
+            {
+                idler.reset();
             }
         }
     }
