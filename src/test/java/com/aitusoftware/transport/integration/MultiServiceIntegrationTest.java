@@ -75,6 +75,7 @@ public final class MultiServiceIntegrationTest
             marketDataPublisher.onAsk("USD/EUR", i, 17 * i, 37);
         }
 
+        // asserts that a message is round-tripped through multiple services
         assertTrue(traderBot.getOrderAcceptedLatch().await(5, TimeUnit.SECONDS));
     }
 

@@ -52,9 +52,7 @@ public final class Server
 
         while (!Thread.currentThread().isInterrupted())
         {
-            acceptNewConnections();
-
-            boolean dataProcessed = false;
+            boolean dataProcessed = acceptedNewConnections();
 
             for (int i = 0; i < channels.size(); i++)
             {
@@ -69,10 +67,11 @@ public final class Server
                         try
                         {
                             final ByteBuffer buffer = record.buffer();
-                            while (buffer.remaining() != 0)
+                            do
                             {
                                 topicChannel.channel.read(buffer);
                             }
+                            while (buffer.remaining() != 0);
                         }
                         finally
                         {
@@ -112,8 +111,9 @@ public final class Server
         }
     }
 
-    private void acceptNewConnections()
+    private boolean acceptedNewConnections()
     {
+        boolean connectionAccepted = false;
         for (int i = 0; i < serverSocketChannels.length; i++)
         {
             try
@@ -121,7 +121,9 @@ public final class Server
                 final SocketChannel accepted = serverSocketChannels[i].channel.accept();
                 if (accepted != null)
                 {
+                    accepted.configureBlocking(false);
                     channels.add(new TopicChannel(accepted));
+                    connectionAccepted = true;
                 }
             }
             catch (IOException e)
@@ -130,6 +132,7 @@ public final class Server
                 // TODO emit event
             }
         }
+        return connectionAccepted;
     }
 
     private static final class TopicChannel

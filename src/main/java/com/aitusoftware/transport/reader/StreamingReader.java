@@ -22,6 +22,7 @@ public final class StreamingReader
     private int pageNumber = 0;
     private int position = 0;
     private Page page;
+    private StreamingReaderContext context;
 
     public StreamingReader(
             final PageCache pageCache, final RecordHandler recordHandler, final boolean tail)
@@ -35,6 +36,8 @@ public final class StreamingReader
     {
         while (!Thread.currentThread().isInterrupted())
         {
+            context = StreamingReaderContext.get();
+
             if (!processRecord())
             {
                 if (!tail)
@@ -50,7 +53,8 @@ public final class StreamingReader
         }
     }
 
-    public boolean processRecord()
+    public boolean
+    processRecord()
     {
         if (page == null)
         {
@@ -68,10 +72,12 @@ public final class StreamingReader
             final Slice slice = pageCache.slice(pageNumber, position, recordLength);
             try
             {
+                context.update(pageNumber, position, localMessageCount);
                 recordHandler.onRecord(slice.buffer(), pageNumber, position);
             }
             finally
             {
+                context.reset();
                 slice.release();
             }
             localMessageCount++;

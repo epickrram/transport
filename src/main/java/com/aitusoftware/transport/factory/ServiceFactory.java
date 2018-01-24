@@ -119,6 +119,11 @@ public final class ServiceFactory
             {
                 final SocketChannel channel = SocketChannel.open(topicToAddress.get(topicId));
                 channel.configureBlocking(false);
+                while (!channel.finishConnect())
+                {
+                    Thread.yield();
+                }
+
                 return channel;
             }
             catch (IOException e)

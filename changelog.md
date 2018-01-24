@@ -1,4 +1,17 @@
-## [0.2.1] TBC
+## [0.3.0] TBC
+
+### Added
+
+- Handle multiple connections between services
+- Handle message buffering
+
+### Bugfixes
+
+## [0.2.1] 2017-11-21
+
+### Added
+
+- Different Idler strategies
 
 ### Bugfixes
 

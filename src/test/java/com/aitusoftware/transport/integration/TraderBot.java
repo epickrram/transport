@@ -28,7 +28,7 @@ public final class TraderBot implements MarketData, MarketNews, TradeNotificatio
     {
         if (updateCount++ > 10)
         {
-            orderNotifications.limitOrder(symbol, "order-" + updateCount, false, 17L, 54.5d, 11);
+            orderNotifications.limitOrder(symbol, "order-" + updateCount, false, quantity, price, sourceId);
             updateCount = 0;
         }
     }
