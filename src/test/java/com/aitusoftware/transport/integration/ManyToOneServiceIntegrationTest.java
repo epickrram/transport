@@ -9,7 +9,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
@@ -24,14 +23,12 @@ public final class ManyToOneServiceIntegrationTest
     @Before
     public void setUp() throws Exception
     {
-
         final Path orderGatewayPath = Fixtures.tempDirectory();
 
         final ServerSocketChannel traderBotListenAddr = ServerSocketChannel.open();
         traderBotListenAddr.configureBlocking(false);
 
-//        traderBotListenAddr.bind(null);
-        traderBotListenAddr.bind(new InetSocketAddress(17999), 50);
+        traderBotListenAddr.bind(null);
 
         final AddressSpace testAddressSpace = new SingleSocketAddressSpace(traderBotListenAddr);
 

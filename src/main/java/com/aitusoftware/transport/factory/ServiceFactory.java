@@ -8,10 +8,12 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.net.AddressSpace;
+import com.aitusoftware.transport.net.MultiChannelTopicMessageHandler;
 import com.aitusoftware.transport.net.OutputChannel;
 import com.aitusoftware.transport.net.Server;
 import com.aitusoftware.transport.net.ServerSocketFactory;
 import com.aitusoftware.transport.net.SingleChannelTopicMessageHandler;
+import com.aitusoftware.transport.net.TopicMessageHandler;
 import com.aitusoftware.transport.net.TopicToChannelMapper;
 import com.aitusoftware.transport.reader.StreamingReader;
 import com.aitusoftware.transport.threads.Idlers;
@@ -71,9 +73,6 @@ public final class ServiceFactory
         final T publisher = publisherFactory.getPublisherProxy(topicDefinition);
         publishers.add((AbstractPublisher) publisher);
         topicIdToTopic.put(((AbstractPublisher) publisher).getTopicId(), topicDefinition);
-
-        socketMapper.addAddress(TopicIdCalculator.calculate(topicDefinition),
-                addressSpace.addressOf(topicDefinition));
         return publisher;
     }
 
@@ -83,7 +82,15 @@ public final class ServiceFactory
         final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation());
         subscribers.add(subscriber);
         topicToSubscriber.put(topicId, subscriber);
-        socketFactory.registerTopicAddress(topicId, addressSpace.addressOf(definition.getTopic()));
+        final List<SocketAddress> socketAddresses = addressSpace.addressesOf(definition.getTopic());
+        if (socketAddresses.size() == 1)
+        {
+            socketFactory.registerTopicAddress(topicId, addressSpace.addressOf(definition.getTopic()));
+        }
+        else
+        {
+            // TODO register subscriber address by index
+        }
         topicIds.add(topicId);
     }
 
@@ -99,11 +106,27 @@ public final class ServiceFactory
         final Collection<Named<StreamingReader>> namedPublishers = new ArrayList<>(publishers.size());
         publishers.forEach(publisher -> {
             final int topicId = publisher.getTopicId();
+            final Class<?> topicDefinition = topicIdToTopic.get(topicId);
+
+            final List<SocketAddress> receiverAddresses = addressSpace.addressesOf(topicDefinition);
+            final TopicMessageHandler messageHandler;
+            if (receiverAddresses.size() == 1)
+            {
+                socketMapper.addAddress(TopicIdCalculator.calculate(topicDefinition),
+                        addressSpace.addressOf(topicDefinition));
+                messageHandler = new SingleChannelTopicMessageHandler(channelMapper);
+            }
+            else
+            {
+                messageHandler = new MultiChannelTopicMessageHandler(
+                        new TopicToChannelMapper(i -> connectSocket(receiverAddresses.get(i))),
+                        receiverAddresses.size());
+            }
             final OutputChannel outputChannel = new OutputChannel(
-                    filter(topicId, new SingleChannelTopicMessageHandler(channelMapper)));
+                    filter(topicId, messageHandler));
             final StreamingReader outboundReader =
                     new StreamingReader(publisherPageCache, outputChannel,
-                            true, publisherIdlerFactory.forPublisher(topicIdToTopic.get(topicId)));
+                            true, publisherIdlerFactory.forPublisher(topicDefinition));
             namedPublishers.add(named("publisher-" +
                     topicIdToTopic.get(publisher.getTopicId()).getSimpleName(), outboundReader));
             readers.add(outboundReader);
@@ -136,21 +159,8 @@ public final class ServiceFactory
         @Override
         public SocketChannel apply(final int topicId)
         {
-            try
-            {
-                final SocketChannel channel = SocketChannel.open(topicToAddress.get(topicId));
-                channel.configureBlocking(false);
-                while (!channel.finishConnect())
-                {
-                    Thread.yield();
-                }
-
-                return channel;
-            }
-            catch (IOException e)
-            {
-                throw new UncheckedIOException(e);
-            }
+            final SocketAddress socketAddress = topicToAddress.get(topicId);
+            return connectSocket(socketAddress);
         }
 
         void addAddress(final int topicId, final SocketAddress address)
@@ -160,6 +170,25 @@ public final class ServiceFactory
                 throw new IllegalStateException("Already contains an address for " + topicId);
             }
             topicToAddress.put(topicId, address);
+        }
+    }
+
+    private static SocketChannel connectSocket(final SocketAddress socketAddress)
+    {
+        try
+        {
+            final SocketChannel channel = SocketChannel.open(socketAddress);
+            channel.configureBlocking(false);
+            while (!channel.finishConnect())
+            {
+                Thread.yield();
+            }
+
+            return channel;
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
         }
     }
 }

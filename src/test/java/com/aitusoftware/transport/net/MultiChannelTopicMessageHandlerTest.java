@@ -9,6 +9,9 @@ import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,14 +21,17 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.IntFunction;
 
 import static com.aitusoftware.transport.Action.executeQuietly;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertThat;
 
-public class SingleChannelTopicMessageHandlerTest
+public class MultiChannelTopicMessageHandlerTest
 {
     private static final byte[] PAYLOAD = new byte[] {(byte) 4, 3, 1, 1, 0};
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final List<Integer> requestedIndices = new ArrayList<>();
     private ServerSocketChannel server;
-    private SingleChannelTopicMessageHandler messageHandler;
+    private MultiChannelTopicMessageHandler messageHandler;
 
     @Before
     public void setUp() throws Exception
@@ -33,7 +39,7 @@ public class SingleChannelTopicMessageHandlerTest
         server = ServerSocketChannel.open();
         server.bind(null);
         final TopicToChannelMapper mapper = new TopicToChannelMapper(createChannel());
-        messageHandler = new SingleChannelTopicMessageHandler(mapper);
+        messageHandler = new MultiChannelTopicMessageHandler(mapper, 4);
     }
 
     @After
@@ -46,11 +52,21 @@ public class SingleChannelTopicMessageHandlerTest
     @Test
     public void shouldSendData() throws InterruptedException, ExecutionException, TimeoutException
     {
-        final Future<byte[]> receiver = startReceiver();
+        final Future<byte[]> receiverOne = startReceiver();
+        final Future<byte[]> receiverTwo = startReceiver();
+        final Future<byte[]> receiverThree = startReceiver();
+        final Future<byte[]> receiverFour = startReceiver();
 
         messageHandler.onTopicMessage(17, ByteBuffer.wrap(PAYLOAD));
+        messageHandler.onTopicMessage(17, ByteBuffer.wrap(PAYLOAD));
+        messageHandler.onTopicMessage(17, ByteBuffer.wrap(PAYLOAD));
+        messageHandler.onTopicMessage(17, ByteBuffer.wrap(PAYLOAD));
 
-        assertArrayEquals(receiver.get(1, TimeUnit.SECONDS), PAYLOAD);
+        assertArrayEquals(receiverOne.get(1, TimeUnit.SECONDS), PAYLOAD);
+        assertArrayEquals(receiverTwo.get(1, TimeUnit.SECONDS), PAYLOAD);
+        assertArrayEquals(receiverThree.get(1, TimeUnit.SECONDS), PAYLOAD);
+        assertArrayEquals(receiverFour.get(1, TimeUnit.SECONDS), PAYLOAD);
+        assertThat(requestedIndices, is(Arrays.asList(0, 1, 2, 3)));
     }
 
     private Future<byte[]> startReceiver()
@@ -77,6 +93,7 @@ public class SingleChannelTopicMessageHandlerTest
     private IntFunction<SocketChannel> createChannel()
     {
         return i -> {
+            requestedIndices.add(i);
             try
             {
                 return SocketChannel.open(server.getLocalAddress());
@@ -87,4 +104,5 @@ public class SingleChannelTopicMessageHandlerTest
             }
         };
     }
+
 }
