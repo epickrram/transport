@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.function.ToIntFunction;
 
 import static com.aitusoftware.transport.factory.Named.named;
 import static com.aitusoftware.transport.net.FilteringTopicMessageHandler.filter;
@@ -39,7 +40,7 @@ public final class ServiceFactory
 {
     public static final String PUBLISHER_PAGE_CACHE_PATH = "pub";
     public static final String SUBSCRIBER_PAGE_CACHE_PATH = "sub";
-    public static final int PAGE_SIZE = 1 << 18;
+    public static final int PAGE_SIZE = 4096 * 64;
 
     private final PublisherFactory publisherFactory;
     private final PageCache subscriberPageCache;
@@ -55,17 +56,27 @@ public final class ServiceFactory
     private final List<StreamingReader> readers = new ArrayList<>();
     private final ServerSocketFactory socketFactory;
     private final PublisherIdlerFactory publisherIdlerFactory = new PublisherIdlerFactory();
+    private final ToIntFunction<Class<?>> topicToSubscriberIndexMapper;
+
+    public ServiceFactory(
+            final Path pageCachePath, final ServerSocketFactory socketFactory,
+            final AddressSpace addressSpace,
+            final ToIntFunction<Class<?>> topicToSubscriberIndexMapper) throws IOException
+    {
+        publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
+        subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
+        this.addressSpace = addressSpace;
+        this.topicToSubscriberIndexMapper = topicToSubscriberIndexMapper;
+        publisherFactory = new PublisherFactory(publisherPageCache);
+        subscriberFactory = new SubscriberFactory();
+        this.socketFactory = socketFactory;
+    }
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
             final AddressSpace addressSpace) throws IOException
     {
-        publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
-        subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
-        this.addressSpace = addressSpace;
-        publisherFactory = new PublisherFactory(publisherPageCache);
-        subscriberFactory = new SubscriberFactory();
-        this.socketFactory = socketFactory;
+        this(pageCachePath, socketFactory, addressSpace, cls -> 0);
     }
 
     public <T> T createPublisher(final Class<T> topicDefinition)
@@ -83,15 +94,8 @@ public final class ServiceFactory
         subscribers.add(subscriber);
         topicToSubscriber.put(topicId, subscriber);
         final List<SocketAddress> socketAddresses = addressSpace.addressesOf(definition.getTopic());
-        if (socketAddresses.size() == 1)
-        {
-            socketFactory.registerTopicAddress(topicId, addressSpace.addressOf(definition.getTopic()));
-        }
-        else
-        {
-
-            // TODO register subscriber address by index
-        }
+        socketFactory.registerTopicAddress(topicId, socketAddresses.get(
+                topicToSubscriberIndexMapper.applyAsInt(definition.getTopic())));
         topicIds.add(topicId);
     }
 
