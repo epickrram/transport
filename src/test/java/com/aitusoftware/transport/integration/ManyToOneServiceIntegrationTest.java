@@ -5,6 +5,7 @@ import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
 import com.aitusoftware.transport.net.AddressSpace;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,14 +56,6 @@ public final class ManyToOneServiceIntegrationTest
     @Test
     public void shouldAcceptMultipleInboundConnections() throws Exception
     {
-        /*
-        Ten connections are created -> 127.0.0.1:17999 for OutputChannel,
-        only ~4 are ever accepted by Server accept loop.
-
-        Some connections have data in receive buffer in /proc/net/tcp
-         */
-
-
         for (int i = 0; i < 40; i++)
         {
             for (int i1 = 0; i1 < publishers.length; i1++)
@@ -74,12 +67,11 @@ public final class ManyToOneServiceIntegrationTest
 
         if (!tradeNotifications.latch.await(5, TimeUnit.SECONDS))
         {
-            throw new AssertionError(String.format("Did not receive expected number of messages. Number remaining: %d%n",
+            Assert.fail(String.format("Did not receive expected number of messages. Number remaining: %d%n",
                     tradeNotifications.latch.getCount()));
         }
     }
 
-    @SuppressWarnings("NonAtomicOperationOnVolatileField")
     private static final class CountingTradeNotifications implements TradeNotifications
     {
         private final CountDownLatch latch = new CountDownLatch(30);

@@ -61,6 +61,7 @@ public final class ServiceFactory
     {
         final T publisher = publisherFactory.getPublisherProxy(topicDefinition);
         publishers.add((AbstractPublisher) publisher);
+
         socketMapper.addAddress(TopicIdCalculator.calculate(topicDefinition),
                 addressSpace.addressOf(topicDefinition));
         return publisher;
