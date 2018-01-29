@@ -32,6 +32,7 @@ public final class MultiChannelTopicMessageHandler implements TopicMessageHandle
             lengthBuffer.clear();
             data.mark();
             writeToChannel(data, i);
+
             data.reset();
         }
     }
@@ -49,12 +50,14 @@ public final class MultiChannelTopicMessageHandler implements TopicMessageHandle
                     // TODO should be handled by reconnect logic
                     return;
                 }
+                final int remaining = data.remaining();
                 channel.write(srcs);
             }
             catch (RuntimeException | IOException e)
             {
                 // TODO buffer data
                 channelMapper.reconnectChannel(index);
+                return;
             }
         }
     }

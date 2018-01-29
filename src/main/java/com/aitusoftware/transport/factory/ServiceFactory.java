@@ -89,6 +89,7 @@ public final class ServiceFactory
         }
         else
         {
+
             // TODO register subscriber address by index
         }
         topicIds.add(topicId);

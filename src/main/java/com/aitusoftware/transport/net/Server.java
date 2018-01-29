@@ -49,7 +49,6 @@ public final class Server
         }
 
         listenerStarted.countDown();
-
         while (!Thread.currentThread().isInterrupted())
         {
             boolean dataProcessed = acceptedNewConnections();
@@ -63,7 +62,8 @@ public final class Server
                     if (topicChannel.isReady())
                     {
                         dataProcessed = true;
-                        final WritableRecord record = subscriberPageCache.acquireRecordBuffer(topicChannel.getLength());
+                        final int length = topicChannel.getLength();
+                        final WritableRecord record = subscriberPageCache.acquireRecordBuffer(length);
                         try
                         {
                             final ByteBuffer buffer = record.buffer();
@@ -161,7 +161,10 @@ public final class Server
         {
             try
             {
-                channel.read(lengthBuffer);
+                if (-1 == channel.read(lengthBuffer))
+                {
+                    throw new IOException("End of stream");
+                }
             }
             catch (IOException e)
             {
