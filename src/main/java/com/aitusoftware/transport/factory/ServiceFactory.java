@@ -22,6 +22,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
@@ -36,6 +37,7 @@ public final class ServiceFactory
     private final PageCache subscriberPageCache;
     private final AddressSpace addressSpace;
     private final Int2ObjectHashMap<Subscriber> topicToSubscriber = new Int2ObjectHashMap<>();
+    private final Int2ObjectHashMap<Class<?>> topicIdToTopic = new Int2ObjectHashMap<>();
     private final IntHashSet topicIds = new IntHashSet();
     private final SubscriberFactory subscriberFactory;
     private final PageCache publisherPageCache;
@@ -61,6 +63,7 @@ public final class ServiceFactory
     {
         final T publisher = publisherFactory.getPublisherProxy(topicDefinition);
         publishers.add((AbstractPublisher) publisher);
+        topicIdToTopic.put(((AbstractPublisher) publisher).getTopicId(), topicDefinition);
 
         socketMapper.addAddress(TopicIdCalculator.calculate(topicDefinition),
                 addressSpace.addressOf(topicDefinition));
@@ -85,12 +88,18 @@ public final class ServiceFactory
         final StreamingReader inboundReader =
                 new StreamingReader(subscriberPageCache, topicDispatcher, true);
         final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
-        final StreamingReader outboundReader =
-                new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true);
+
+        final Collection<Named<StreamingReader>> namedPublishers = new ArrayList<>(publishers.size());
+        publishers.forEach(publisher -> {
+            final StreamingReader outboundReader =
+                    new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true);
+            namedPublishers.add(Named.named("publisher-" +
+                    topicIdToTopic.get(publisher.getTopicId()).getSimpleName(), outboundReader));
+            readers.add(outboundReader);
+        });
         readers.add(inboundReader);
-        readers.add(outboundReader);
         final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache);
-        return new Service(inboundReader, outboundReader, server);
+        return new Service(inboundReader, namedPublishers, server);
     }
 
     public void publishers(final Consumer<AbstractPublisher> consumer)

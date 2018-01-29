@@ -33,4 +33,9 @@ public abstract class AbstractPublisher
     {
         return messageCount.get();
     }
+
+    public int getTopicId()
+    {
+        return topicId;
+    }
 }

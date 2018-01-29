@@ -3,33 +3,37 @@ package com.aitusoftware.transport.factory;
 import com.aitusoftware.transport.net.Server;
 import com.aitusoftware.transport.reader.StreamingReader;
 
+import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.aitusoftware.transport.threads.Threads.daemonFactory;
 import static com.aitusoftware.transport.threads.Threads.loggingRunnable;
 import static com.aitusoftware.transport.threads.Threads.namedThread;
-import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.Executors.newCachedThreadPool;
 
 public final class Service
 {
     private final StreamingReader inboundReader;
-    private final StreamingReader outboundReader;
+    private final Collection<Named<StreamingReader>> outboundReaders;
     private final Server server;
     private final ExecutorService executor =
-            newFixedThreadPool(3, daemonFactory());
+            newCachedThreadPool(daemonFactory());
 
-    Service(final StreamingReader inboundReader, final StreamingReader outboundReader,
+    Service(final StreamingReader inboundReader, final Collection<Named<StreamingReader>> outboundReaders,
             final Server server)
     {
         this.inboundReader = inboundReader;
-        this.outboundReader = outboundReader;
+        this.outboundReaders = outboundReaders;
         this.server = server;
     }
 
     public void start()
     {
-        executor.submit(loggingRunnable(namedThread("outbound-message-processor", outboundReader::process)));
+        outboundReaders.forEach(reader -> {
+            executor.submit(loggingRunnable(namedThread("outbound-message-processor-" + reader.name(),
+                    reader.value()::process)));
+        });
         executor.submit(loggingRunnable(namedThread("inbound-message-dispatcher", inboundReader::process)));
         executor.submit(loggingRunnable(namedThread("request-server", server::start)));
 

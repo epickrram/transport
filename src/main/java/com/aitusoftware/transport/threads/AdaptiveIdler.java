@@ -3,6 +3,7 @@ package com.aitusoftware.transport.threads;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
+@SingleThreaded
 final class AdaptiveIdler implements Idler
 {
     private static final int INITIAL_COUNT = 200;

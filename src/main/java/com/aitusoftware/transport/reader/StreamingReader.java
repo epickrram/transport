@@ -53,8 +53,7 @@ public final class StreamingReader
         }
     }
 
-    public boolean
-    processRecord()
+    public boolean processRecord()
     {
         if (page == null)
         {
