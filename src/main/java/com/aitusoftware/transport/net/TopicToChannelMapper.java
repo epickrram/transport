@@ -2,6 +2,7 @@ package com.aitusoftware.transport.net;
 
 import org.agrona.collections.Int2ObjectHashMap;
 
+import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.IntFunction;
 
@@ -16,7 +17,7 @@ public final class TopicToChannelMapper
         this.connector = connector;
     }
 
-    SocketChannel forTopic(final int topicId)
+    GatheringByteChannel forTopic(final int topicId)
     {
         SocketChannel channel = openChannels.get(topicId);
         if (channel != null)

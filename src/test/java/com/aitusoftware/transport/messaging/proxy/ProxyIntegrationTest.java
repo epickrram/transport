@@ -5,6 +5,7 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.messaging.TestTopic;
 import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -12,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertNotNull;
@@ -72,7 +74,7 @@ public final class ProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, false).process();
+        }, false, Idlers.staticPause(1, TimeUnit.MILLISECONDS)).process();
 
         assertThat(capture.received.size(), is(2));
         assertThat(capture.received.get("hola"), is(7));

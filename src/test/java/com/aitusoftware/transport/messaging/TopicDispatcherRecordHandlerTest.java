@@ -6,11 +6,13 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -60,7 +62,7 @@ public final class TopicDispatcherRecordHandlerTest
         final TopicDispatcherRecordHandler topicDispatcher =
                 new TopicDispatcherRecordHandler(subscriberMap);
 
-        new StreamingReader(pageCache, topicDispatcher, false).process();
+        new StreamingReader(pageCache, topicDispatcher, false, Idlers.staticPause(1, TimeUnit.MILLISECONDS)).process();
 
         assertThat(testTopicMessageCounter.getMessageCount(), is(2));
     }

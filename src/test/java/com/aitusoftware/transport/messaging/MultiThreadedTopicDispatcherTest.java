@@ -6,6 +6,7 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.junit.After;
 import org.junit.Before;
@@ -159,7 +160,7 @@ public final class MultiThreadedTopicDispatcherTest
         final TopicDispatcherRecordHandler topicDispatcher =
                 new TopicDispatcherRecordHandler(subscriberMap);
 
-        final StreamingReader streamingReader = new StreamingReader(pageCache, topicDispatcher, true);
+        final StreamingReader streamingReader = new StreamingReader(pageCache, topicDispatcher, true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
         Executors.newSingleThreadExecutor().submit(streamingReader::process);
 
         final long timeoutAt = System.currentTimeMillis() + 10_000L;

@@ -2,10 +2,12 @@ package com.aitusoftware.transport.reader;
 
 import com.aitusoftware.transport.buffer.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.threads.Idlers;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -46,7 +48,7 @@ public class StreamingReaderTest
 
     private StreamingReader createReader()
     {
-        return new StreamingReader(pageCache, handler, false);
+        return new StreamingReader(pageCache, handler, false, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
     }
 
     private static final class CapturingRecordHandler implements RecordHandler

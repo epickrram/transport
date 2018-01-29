@@ -11,6 +11,7 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;
 import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.junit.After;
 import org.junit.Before;
@@ -54,7 +55,7 @@ public final class SingleServiceIntegrationTest
 
         final Int2ObjectHashMap<Subscriber> subscriberMap = new Int2ObjectHashMap<>();
         subscriberMap.put(subscriber.getTopicId(), subscriber);
-        final StreamingReader streamingReader = new StreamingReader(outputPageCache, new TopicDispatcherRecordHandler(subscriberMap), true);
+        final StreamingReader streamingReader = new StreamingReader(outputPageCache, new TopicDispatcherRecordHandler(subscriberMap), true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
         executor = Executors.newSingleThreadExecutor();
         executor.execute(streamingReader::process);
         this.service.start();

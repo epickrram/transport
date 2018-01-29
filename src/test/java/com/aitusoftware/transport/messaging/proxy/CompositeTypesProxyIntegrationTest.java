@@ -10,6 +10,7 @@ import com.aitusoftware.transport.messaging.OrderDetails;
 import com.aitusoftware.transport.messaging.OrderDetailsBuilder;
 import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.HdrHistogram.Histogram;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -75,7 +76,7 @@ public final class CompositeTypesProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, true);
+        }, true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
 
         final Thread receiver = new Thread(streamingReader::process);
         receiver.start();
@@ -175,7 +176,7 @@ public final class CompositeTypesProxyIntegrationTest
                 data.getInt();
                 subscriber.onRecord(data, pageNumber, position);
             }
-        }, false).process();
+        }, false, Idlers.staticPause(1, TimeUnit.MILLISECONDS)).process();
 
         while (receivedMessages.size() != sentMessages.size())
         {

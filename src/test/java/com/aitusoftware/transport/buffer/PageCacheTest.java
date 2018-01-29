@@ -2,6 +2,7 @@ package com.aitusoftware.transport.buffer;
 
 import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,7 +63,7 @@ public class PageCacheTest
         }
 
         final MessageValidator validator = new MessageValidator();
-        final StreamingReader reader = new StreamingReader(newPageCache, validator, true);
+        final StreamingReader reader = new StreamingReader(newPageCache, validator, true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
 
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.submit(reader::process);

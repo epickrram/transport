@@ -6,9 +6,7 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.Record;
 import com.aitusoftware.transport.buffer.Slice;
 import com.aitusoftware.transport.threads.Idler;
-import com.aitusoftware.transport.threads.Idlers;
 
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class StreamingReader
@@ -16,7 +14,7 @@ public final class StreamingReader
     private final PageCache pageCache;
     private final RecordHandler recordHandler;
     private final boolean tail;
-    private final Idler idler = Idlers.staticPause(1, TimeUnit.MILLISECONDS);
+    private final Idler idler;
     private final AtomicLong messageCount = new AtomicLong();
     private long localMessageCount;
     private int pageNumber = 0;
@@ -25,11 +23,13 @@ public final class StreamingReader
     private StreamingReaderContext context;
 
     public StreamingReader(
-            final PageCache pageCache, final RecordHandler recordHandler, final boolean tail)
+            final PageCache pageCache, final RecordHandler recordHandler,
+            final boolean tail, final Idler idler)
     {
         this.pageCache = pageCache;
         this.recordHandler = recordHandler;
         this.tail = tail;
+        this.idler = idler;
     }
 
     public void process()

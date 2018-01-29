@@ -11,8 +11,10 @@ import com.aitusoftware.transport.net.AddressSpace;
 import com.aitusoftware.transport.net.OutputChannel;
 import com.aitusoftware.transport.net.Server;
 import com.aitusoftware.transport.net.ServerSocketFactory;
+import com.aitusoftware.transport.net.SingleChannelTopicMessageHandler;
 import com.aitusoftware.transport.net.TopicToChannelMapper;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idlers;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntHashSet;
 
@@ -24,8 +26,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
+
+import static com.aitusoftware.transport.factory.Named.named;
+import static com.aitusoftware.transport.net.FilteringTopicMessageHandler.filter;
 
 public final class ServiceFactory
 {
@@ -46,6 +52,7 @@ public final class ServiceFactory
     private final List<Subscriber<?>> subscribers = new ArrayList<>();
     private final List<StreamingReader> readers = new ArrayList<>();
     private final ServerSocketFactory socketFactory;
+    private final PublisherIdlerFactory publisherIdlerFactory = new PublisherIdlerFactory();
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
@@ -86,14 +93,18 @@ public final class ServiceFactory
                 new TopicDispatcherRecordHandler(topicToSubscriber);
 
         final StreamingReader inboundReader =
-                new StreamingReader(subscriberPageCache, topicDispatcher, true);
+                new StreamingReader(subscriberPageCache, topicDispatcher, true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
         final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
 
         final Collection<Named<StreamingReader>> namedPublishers = new ArrayList<>(publishers.size());
         publishers.forEach(publisher -> {
+            final int topicId = publisher.getTopicId();
+            final OutputChannel outputChannel = new OutputChannel(
+                    filter(topicId, new SingleChannelTopicMessageHandler(channelMapper)));
             final StreamingReader outboundReader =
-                    new StreamingReader(publisherPageCache, new OutputChannel(channelMapper), true);
-            namedPublishers.add(Named.named("publisher-" +
+                    new StreamingReader(publisherPageCache, outputChannel,
+                            true, publisherIdlerFactory.forPublisher(topicIdToTopic.get(topicId)));
+            namedPublishers.add(named("publisher-" +
                     topicIdToTopic.get(publisher.getTopicId()).getSimpleName(), outboundReader));
             readers.add(outboundReader);
         });
