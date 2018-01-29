@@ -50,7 +50,6 @@ public final class MultiChannelTopicMessageHandler implements TopicMessageHandle
                     // TODO should be handled by reconnect logic
                     return;
                 }
-                final int remaining = data.remaining();
                 channel.write(srcs);
             }
             catch (RuntimeException | IOException e)
