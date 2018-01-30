@@ -39,8 +39,7 @@ public final class MultiChannelTopicMessageHandler implements TopicMessageHandle
 
     private void writeToChannel(final ByteBuffer data, final int index)
     {
-        while ((data.remaining() != 0 || lengthBuffer.remaining() != 0) &&
-                !Thread.currentThread().isInterrupted())
+        do
         {
             try
             {
@@ -59,5 +58,7 @@ public final class MultiChannelTopicMessageHandler implements TopicMessageHandle
                 return;
             }
         }
+        while ((data.remaining() != 0 || lengthBuffer.remaining() != 0) &&
+                !Thread.currentThread().isInterrupted());
     }
 }

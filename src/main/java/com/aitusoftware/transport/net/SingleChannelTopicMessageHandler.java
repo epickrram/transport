@@ -27,8 +27,7 @@ public final class SingleChannelTopicMessageHandler implements TopicMessageHandl
         // TODO should be able to determine length from record header
         lengthBuffer.putInt(0, data.remaining());
 
-        while ((data.remaining() != 0 || lengthBuffer.remaining() != 0) &&
-                !Thread.currentThread().isInterrupted())
+        do
         {
             try
             {
@@ -46,5 +45,7 @@ public final class SingleChannelTopicMessageHandler implements TopicMessageHandl
                 channelMapper.reconnectChannel(topicId);
             }
         }
+        while ((data.remaining() != 0 || lengthBuffer.remaining() != 0) &&
+                !Thread.currentThread().isInterrupted());
     }
 }
