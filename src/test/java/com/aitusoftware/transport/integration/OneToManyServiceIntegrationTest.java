@@ -4,6 +4,7 @@ import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
+import com.aitusoftware.transport.factory.SubscriberThreading;
 import com.aitusoftware.transport.net.AddressSpace;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,7 +46,7 @@ public final class OneToManyServiceIntegrationTest
         {
             final Path orderGatewayPath = Fixtures.tempDirectory();
             final ServiceFactory gatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdler());
+                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
             receivers[i] = new CountingTradeNotifications(latch);
             gatewayServiceFactory.registerSubscriber(
                     new SubscriberDefinition<>(OrderNotifications.class, new OrderGateway(receivers[i]), null));
@@ -53,7 +54,7 @@ public final class OneToManyServiceIntegrationTest
         }
 
         final ServiceFactory publishingServiceFactory = new ServiceFactory(publishingServicePath,
-                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler());
+                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
         publisher = publishingServiceFactory.createPublisher(OrderNotifications.class);
         final Service publisherService = publishingServiceFactory.create();
         publisherService.start();

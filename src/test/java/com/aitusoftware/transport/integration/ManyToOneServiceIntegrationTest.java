@@ -4,6 +4,7 @@ import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
+import com.aitusoftware.transport.factory.SubscriberThreading;
 import com.aitusoftware.transport.net.AddressSpace;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,13 +39,13 @@ public final class ManyToOneServiceIntegrationTest
         {
             final Path traderBotPath = Fixtures.tempDirectory();
             final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                    new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler());
+                    new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
             publishers[i] = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
             traderBotServiceFactory.create().start();
         }
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler());
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
         final OrderGateway orderGateway = new OrderGateway(tradeNotifications);
         orderGatewayServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));

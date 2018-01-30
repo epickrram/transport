@@ -5,26 +5,39 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
+import com.aitusoftware.transport.factory.SubscriberThreading;
 import com.aitusoftware.transport.messaging.StaticAddressSpace;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.net.AddressSpace;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.aitusoftware.transport.Fixtures.testIdler;
 import static org.junit.Assert.assertTrue;
 
-public final class MultiServiceIntegrationTest
+@RunWith(Parameterized.class)
+public final class SubscriberThreadingIntegrationTest
 {
+    private final SubscriberThreading subscriberThreading;
     private Service traderBotService;
     private MarketData marketDataPublisher;
     private Service orderGatewayService;
     private TraderBot traderBot;
+
+    public SubscriberThreadingIntegrationTest(final String testSpec, final SubscriberThreading subscriberThreading)
+    {
+        this.subscriberThreading = subscriberThreading;
+    }
 
     @Before
     public void setUp() throws Exception
@@ -44,7 +57,7 @@ public final class MultiServiceIntegrationTest
                 orderGatewayListenAddr.socket().getLocalPort());
 
         final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler());
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler(), subscriberThreading);
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
         traderBotServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, null));
@@ -55,12 +68,13 @@ public final class MultiServiceIntegrationTest
         this.traderBotService = traderBotServiceFactory.create();
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdler());
+                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdler(), subscriberThreading);
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
         orderGatewayServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));
         this.orderGatewayService = orderGatewayServiceFactory.create();
 
+        // TODO publish MarketData over TCP
         final PageCache inputPageCache = PageCache.create(traderBotPath.resolve(ServiceFactory.SUBSCRIBER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
         marketDataPublisher = new PublisherFactory(inputPageCache).getPublisherProxy(MarketData.class);
 
@@ -68,6 +82,7 @@ public final class MultiServiceIntegrationTest
         this.orderGatewayService.start();
     }
 
+    @Ignore("WIP")
     @Test
     public void shouldHandleMessages() throws Exception
     {
@@ -120,4 +135,23 @@ public final class MultiServiceIntegrationTest
             return delegate.hostOf(topicClass);
         }
     }
+
+    @Parameterized.Parameters(name = "{0}")
+    public static List<Object[]> testParameters()
+    {
+        return Arrays.asList(
+                testSpec(SubscriberThreading.SINGLE_THREADED),
+                testSpec(SubscriberThreading.THREAD_PER_TOPIC)
+        );
+    }
+
+    private static Object[] testSpec(final SubscriberThreading threading)
+    {
+        return new Object[]
+                {
+                        String.format("subscriber threading: %s", threading.name()),
+                        threading
+                };
+    }
+
 }

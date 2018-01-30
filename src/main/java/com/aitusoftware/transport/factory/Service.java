@@ -35,7 +35,7 @@ public final class Service
                     reader.value()::process)));
         });
         executor.submit(loggingRunnable(namedThread("inbound-message-dispatcher", inboundReader::process)));
-        executor.submit(loggingRunnable(namedThread("request-server", server::start)));
+        server.start(executor);
 
         server.waitForStartup(5, TimeUnit.SECONDS);
     }

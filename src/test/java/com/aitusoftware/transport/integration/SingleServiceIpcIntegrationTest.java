@@ -5,6 +5,7 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
+import com.aitusoftware.transport.factory.SubscriberThreading;
 import com.aitusoftware.transport.messaging.StaticAddressSpace;
 import com.aitusoftware.transport.messaging.TopicDispatcherRecordHandler;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
@@ -27,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 import static com.aitusoftware.transport.Fixtures.testIdler;
 import static org.junit.Assert.assertTrue;
 
-public final class SingleServiceIntegrationTest
+public final class SingleServiceIpcIntegrationTest
 {
     private Service service;
     private MarketData marketDataPublisher;
@@ -41,7 +42,7 @@ public final class SingleServiceIntegrationTest
 
         final ServiceFactory serviceFactory =
                 new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()),
-                        new StaticAddressSpace(), testIdler());
+                        new StaticAddressSpace(), testIdler(), SubscriberThreading.SINGLE_THREADED);
         final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, null));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, null));
@@ -100,4 +101,5 @@ public final class SingleServiceIntegrationTest
             latch.countDown();
         }
     }
+
 }

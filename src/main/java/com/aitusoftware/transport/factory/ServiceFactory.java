@@ -59,12 +59,14 @@ public final class ServiceFactory
     private final ServerSocketFactory socketFactory;
     private final Function<Class<?>, Idler> publisherIdlerFactory;
     private final ToIntFunction<Class<?>> topicToSubscriberIndexMapper;
+    private final SubscriberThreading subscriberThreading;
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
             final AddressSpace addressSpace,
             final ToIntFunction<Class<?>> topicToSubscriberIndexMapper,
-            final Function<Class<?>, Idler> publisherIdlerFactory) throws IOException
+            final Function<Class<?>, Idler> publisherIdlerFactory,
+            final SubscriberThreading subscriberThreading) throws IOException
     {
         publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
         subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
@@ -74,13 +76,15 @@ public final class ServiceFactory
         subscriberFactory = new SubscriberFactory();
         this.socketFactory = socketFactory;
         this.publisherIdlerFactory = publisherIdlerFactory;
+        this.subscriberThreading = subscriberThreading;
     }
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
-            final AddressSpace addressSpace, final Function<Class<?>, Idler> publisherIdlerFactory) throws IOException
+            final AddressSpace addressSpace, final Function<Class<?>, Idler> publisherIdlerFactory,
+            final SubscriberThreading subscriberThreading) throws IOException
     {
-        this(pageCachePath, socketFactory, addressSpace, cls -> 0, publisherIdlerFactory);
+        this(pageCachePath, socketFactory, addressSpace, cls -> 0, publisherIdlerFactory, subscriberThreading);
     }
 
     public <T> T createPublisher(final Class<T> topicDefinition)
@@ -94,7 +98,8 @@ public final class ServiceFactory
     public <T> void registerSubscriber(final SubscriberDefinition<T> definition)
     {
         final int topicId = TopicIdCalculator.calculate(definition.getTopic());
-        final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(), definition.getImplementation());
+        final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(),
+                definition.getImplementation());
         subscribers.add(subscriber);
         topicToSubscriber.put(topicId, subscriber);
         final List<SocketAddress> socketAddresses = addressSpace.addressesOf(definition.getTopic());
@@ -109,9 +114,33 @@ public final class ServiceFactory
                 new TopicDispatcherRecordHandler(topicToSubscriber);
 
         final StreamingReader inboundReader =
-                new StreamingReader(subscriberPageCache, topicDispatcher, true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
+                new StreamingReader(subscriberPageCache, topicDispatcher, true,
+                        Idlers.staticPause(1, TimeUnit.MILLISECONDS));
         final TopicToChannelMapper channelMapper = new TopicToChannelMapper(socketMapper);
 
+        final Collection<Named<StreamingReader>> namedPublishers = createPublisherReaders(channelMapper);
+        readers.add(inboundReader);
+        final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache, subscriberThreading);
+        return new Service(inboundReader, namedPublishers, server);
+    }
+
+    public void publishers(final Consumer<AbstractPublisher> consumer)
+    {
+        publishers.forEach(consumer);
+    }
+
+    public void subscribers(final Consumer<Subscriber<?>> consumer)
+    {
+        subscribers.forEach(consumer);
+    }
+
+    public void readers(final Consumer<StreamingReader> consumer)
+    {
+        readers.forEach(consumer);
+    }
+
+    private Collection<Named<StreamingReader>> createPublisherReaders(final TopicToChannelMapper channelMapper)
+    {
         final Collection<Named<StreamingReader>> namedPublishers = new ArrayList<>(publishers.size());
         publishers.forEach(publisher -> {
             final int topicId = publisher.getTopicId();
@@ -140,28 +169,11 @@ public final class ServiceFactory
                     topicIdToTopic.get(publisher.getTopicId()).getSimpleName(), outboundReader));
             readers.add(outboundReader);
         });
-        readers.add(inboundReader);
-        final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache);
-        return new Service(inboundReader, namedPublishers, server);
+        return namedPublishers;
     }
-
-    public void publishers(final Consumer<AbstractPublisher> consumer)
-    {
-        publishers.forEach(consumer);
-    }
-
-    public void subscribers(final Consumer<Subscriber<?>> consumer)
-    {
-        subscribers.forEach(consumer);
-    }
-
-    public void readers(final Consumer<StreamingReader> consumer)
-    {
-        readers.forEach(consumer);
-    }
-
     private static final class SocketMapper implements IntFunction<SocketChannel>
     {
+
         private final Int2ObjectHashMap<SocketAddress> topicToAddress =
                 new Int2ObjectHashMap<>();
 
