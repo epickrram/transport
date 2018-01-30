@@ -34,6 +34,7 @@ public final class SubscriberThreadingIntegrationTest
     private Service orderGatewayService;
     private TraderBot traderBot;
 
+    @SuppressWarnings("unused")
     public SubscriberThreadingIntegrationTest(final String testSpec, final SubscriberThreading subscriberThreading)
     {
         this.subscriberThreading = subscriberThreading;
