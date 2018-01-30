@@ -11,7 +11,6 @@ import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.net.AddressSpace;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -83,7 +82,6 @@ public final class SubscriberThreadingIntegrationTest
         this.orderGatewayService.start();
     }
 
-    @Ignore("WIP")
     @Test
     public void shouldHandleMessages() throws Exception
     {
@@ -97,7 +95,7 @@ public final class SubscriberThreadingIntegrationTest
     }
 
     @After
-    public void tearDown() throws Exception
+    public void tearDown()
     {
         assertTrue(traderBotService.stop(5, TimeUnit.SECONDS));
         assertTrue(orderGatewayService.stop(5, TimeUnit.SECONDS));

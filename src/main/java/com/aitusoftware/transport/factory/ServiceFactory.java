@@ -106,6 +106,7 @@ public final class ServiceFactory
         socketFactory.registerTopicAddress(topicId, socketAddresses.get(
                 topicToSubscriberIndexMapper.applyAsInt(definition.getTopic())));
         topicIds.add(topicId);
+        topicIdToTopic.put(topicId, definition.getTopic());
     }
 
     public Service create()
@@ -120,7 +121,8 @@ public final class ServiceFactory
 
         final Collection<Named<StreamingReader>> namedPublishers = createPublisherReaders(channelMapper);
         readers.add(inboundReader);
-        final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache, subscriberThreading);
+        final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache,
+                subscriberThreading, topicIdToTopic);
         return new Service(inboundReader, namedPublishers, server);
     }
 
