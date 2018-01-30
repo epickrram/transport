@@ -17,6 +17,7 @@ public final class AdaptiveIdlerFactory
         this.pauseUnit = pauseUnit;
     }
 
+    @SuppressWarnings("unused")
     private Idler forPublisher(final Class<?> topicClass)
     {
         return Idlers.adaptive(maxPause, pauseUnit);
