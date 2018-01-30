@@ -1,5 +1,6 @@
 package com.aitusoftware.transport.buffer;
 
+import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.reader.RecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
 import com.aitusoftware.transport.threads.Idlers;

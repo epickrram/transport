@@ -1,6 +1,6 @@
 package com.aitusoftware.transport.messaging;
 
-import com.aitusoftware.transport.buffer.Fixtures;
+import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
 import com.aitusoftware.transport.messaging.proxy.Subscriber;

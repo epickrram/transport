@@ -1,6 +1,6 @@
 package com.aitusoftware.transport.reader;
 
-import com.aitusoftware.transport.buffer.Fixtures;
+import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.threads.Idlers;
 import org.junit.Before;

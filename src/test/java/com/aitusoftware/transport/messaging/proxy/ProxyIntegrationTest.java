@@ -1,6 +1,6 @@
 package com.aitusoftware.transport.messaging.proxy;
 
-import com.aitusoftware.transport.buffer.Fixtures;
+import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.messaging.TestTopic;
 import com.aitusoftware.transport.reader.RecordHandler;

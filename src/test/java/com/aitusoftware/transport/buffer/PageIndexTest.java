@@ -1,5 +1,6 @@
 package com.aitusoftware.transport.buffer;
 
+import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.files.Filenames;
 import org.junit.Before;
 import org.junit.Test;

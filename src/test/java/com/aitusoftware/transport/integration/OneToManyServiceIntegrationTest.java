@@ -1,6 +1,6 @@
 package com.aitusoftware.transport.integration;
 
-import com.aitusoftware.transport.buffer.Fixtures;
+import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.aitusoftware.transport.factory.AdaptiveIdlerFactory.idleUpTo;
+import static com.aitusoftware.transport.Fixtures.testIdler;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -45,7 +45,7 @@ public final class OneToManyServiceIntegrationTest
         {
             final Path orderGatewayPath = Fixtures.tempDirectory();
             final ServiceFactory gatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, idleUpTo(1, TimeUnit.MILLISECONDS));
+                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdler());
             receivers[i] = new CountingTradeNotifications(latch);
             gatewayServiceFactory.registerSubscriber(
                     new SubscriberDefinition<>(OrderNotifications.class, new OrderGateway(receivers[i]), null));
@@ -53,7 +53,7 @@ public final class OneToManyServiceIntegrationTest
         }
 
         final ServiceFactory publishingServiceFactory = new ServiceFactory(publishingServicePath,
-                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, idleUpTo(1, TimeUnit.MILLISECONDS));
+                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler());
         publisher = publishingServiceFactory.createPublisher(OrderNotifications.class);
         final Service publisherService = publishingServiceFactory.create();
         publisherService.start();

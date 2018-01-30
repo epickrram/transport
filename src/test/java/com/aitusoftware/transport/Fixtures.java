@@ -1,4 +1,9 @@
-package com.aitusoftware.transport.buffer;
+package com.aitusoftware.transport;
+
+import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.buffer.WritableRecord;
+import com.aitusoftware.transport.threads.Idler;
+import com.aitusoftware.transport.threads.Idlers;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -8,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public final class Fixtures
@@ -29,6 +36,11 @@ public final class Fixtures
         }));
     }
 
+    public static Function<Class<?>, Idler> testIdler()
+    {
+        return cls -> Idlers.staticPause(1, TimeUnit.MILLISECONDS);
+    }
+
     public static Path tempDirectory()
     {
         try
@@ -40,35 +52,6 @@ public final class Fixtures
         catch (IOException e)
         {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    private static void recursiveDelete(final Path path)
-    {
-        if (Files.isDirectory(path))
-        {
-            FileSystems.getDefault().getRootDirectories().forEach(r -> {
-                if (r.equals(path))
-                {
-                    throw new IllegalArgumentException("Not deleting root directory: " + r);
-                }
-            });
-            try (final Stream<Path> children = Files.list(path))
-            {
-                children.forEach(Fixtures::recursiveDelete);
-            }
-            catch (IOException e)
-            {
-                throw new UncheckedIOException(e);
-            }
-        }
-        try
-        {
-            Files.deleteIfExists(path);
-        }
-        catch (IOException e)
-        {
-            System.err.println("Failed to delete file: " + e.getMessage());
         }
     }
 
@@ -119,6 +102,35 @@ public final class Fixtures
         while (target.remaining() != 0)
         {
             target.put((byte) messageId);
+        }
+    }
+
+    private static void recursiveDelete(final Path path)
+    {
+        if (Files.isDirectory(path))
+        {
+            FileSystems.getDefault().getRootDirectories().forEach(r -> {
+                if (r.equals(path))
+                {
+                    throw new IllegalArgumentException("Not deleting root directory: " + r);
+                }
+            });
+            try (final Stream<Path> children = Files.list(path))
+            {
+                children.forEach(Fixtures::recursiveDelete);
+            }
+            catch (IOException e)
+            {
+                throw new UncheckedIOException(e);
+            }
+        }
+        try
+        {
+            Files.deleteIfExists(path);
+        }
+        catch (IOException e)
+        {
+            System.err.println("Failed to delete file: " + e.getMessage());
         }
     }
 }
