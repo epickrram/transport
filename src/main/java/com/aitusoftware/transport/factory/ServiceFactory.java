@@ -16,6 +16,7 @@ import com.aitusoftware.transport.net.SingleChannelTopicMessageHandler;
 import com.aitusoftware.transport.net.TopicMessageHandler;
 import com.aitusoftware.transport.net.TopicToChannelMapper;
 import com.aitusoftware.transport.reader.StreamingReader;
+import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.Idlers;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.agrona.collections.IntHashSet;
@@ -30,6 +31,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.ToIntFunction;
 
@@ -55,13 +57,14 @@ public final class ServiceFactory
     private final List<Subscriber<?>> subscribers = new ArrayList<>();
     private final List<StreamingReader> readers = new ArrayList<>();
     private final ServerSocketFactory socketFactory;
-    private final PublisherIdlerFactory publisherIdlerFactory = new PublisherIdlerFactory();
+    private final Function<Class<?>, Idler> publisherIdlerFactory;
     private final ToIntFunction<Class<?>> topicToSubscriberIndexMapper;
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
             final AddressSpace addressSpace,
-            final ToIntFunction<Class<?>> topicToSubscriberIndexMapper) throws IOException
+            final ToIntFunction<Class<?>> topicToSubscriberIndexMapper,
+            final Function<Class<?>, Idler> publisherIdlerFactory) throws IOException
     {
         publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
         subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
@@ -70,13 +73,14 @@ public final class ServiceFactory
         publisherFactory = new PublisherFactory(publisherPageCache);
         subscriberFactory = new SubscriberFactory();
         this.socketFactory = socketFactory;
+        this.publisherIdlerFactory = publisherIdlerFactory;
     }
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
-            final AddressSpace addressSpace) throws IOException
+            final AddressSpace addressSpace, final Function<Class<?>, Idler> publisherIdlerFactory) throws IOException
     {
-        this(pageCachePath, socketFactory, addressSpace, cls -> 0);
+        this(pageCachePath, socketFactory, addressSpace, cls -> 0, publisherIdlerFactory);
     }
 
     public <T> T createPublisher(final Class<T> topicDefinition)
@@ -131,7 +135,7 @@ public final class ServiceFactory
                     filter(topicId, messageHandler));
             final StreamingReader outboundReader =
                     new StreamingReader(publisherPageCache, outputChannel,
-                            true, publisherIdlerFactory.forPublisher(topicDefinition));
+                            true, publisherIdlerFactory.apply(topicDefinition));
             namedPublishers.add(named("publisher-" +
                     topicIdToTopic.get(publisher.getTopicId()).getSimpleName(), outboundReader));
             readers.add(outboundReader);

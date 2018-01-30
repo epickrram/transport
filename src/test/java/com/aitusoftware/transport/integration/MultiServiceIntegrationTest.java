@@ -16,6 +16,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 
+import static com.aitusoftware.transport.factory.AdaptiveIdlerFactory.idleUpTo;
 import static org.junit.Assert.assertTrue;
 
 public final class MultiServiceIntegrationTest
@@ -43,7 +44,7 @@ public final class MultiServiceIntegrationTest
                 orderGatewayListenAddr.socket().getLocalPort());
 
         final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace);
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, idleUpTo(1, TimeUnit.MILLISECONDS));
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
         traderBotServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, null));
@@ -54,7 +55,7 @@ public final class MultiServiceIntegrationTest
         this.traderBotService = traderBotServiceFactory.create();
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace);
+                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, idleUpTo(1, TimeUnit.MILLISECONDS));
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
         orderGatewayServiceFactory.registerSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));

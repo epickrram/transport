@@ -27,4 +27,44 @@ public final class Idlers
     {
         return new StaticPausingIdler(pause, pauseUnit);
     }
+
+    public static Idler forString(final String spec)
+    {
+        final String[] tokens = spec.split(",");
+        try
+        {
+            switch (tokens[0])
+            {
+                case "BUSY_SPIN":
+                    return busy();
+                case "YIELDING":
+                    return yielding();
+                case "STATIC":
+                    return staticPauseFromSpec(tokens);
+                case "ADAPTIVE":
+                    return adaptivePauseFromSpec(tokens);
+                default:
+                    return reject(spec);
+            }
+        }
+        catch (IllegalArgumentException e)
+        {
+            return reject(spec);
+        }
+    }
+
+    private static Idler adaptivePauseFromSpec(final String[] tokens)
+    {
+        return adaptive(Long.parseLong(tokens[1]), TimeUnit.valueOf(tokens[2]));
+    }
+
+    private static Idler staticPauseFromSpec(final String[] tokens)
+    {
+        return staticPause(Long.parseLong(tokens[1]), TimeUnit.valueOf(tokens[2]));
+    }
+
+    private static Idler reject(final String spec)
+    {
+        throw new IllegalArgumentException(String.format("Unrecognised Idler spec: %s", spec));
+    }
 }

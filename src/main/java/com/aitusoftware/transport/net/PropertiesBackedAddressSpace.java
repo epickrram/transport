@@ -1,5 +1,7 @@
 package com.aitusoftware.transport.net;
 
+import com.aitusoftware.transport.messaging.Topic;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Arrays;
@@ -20,6 +22,11 @@ public final class PropertiesBackedAddressSpace implements AddressSpace
     @Override
     public List<SocketAddress> addressesOf(final Class<?> topicClass)
     {
+        if (topicClass.getAnnotation(Topic.class) == null)
+        {
+            throw new IllegalArgumentException(String.format(
+                    "Not a topic spec: %s", topicClass.getName()));
+        }
         final String addressSpec = properties.getProperty(topicClass.getName());
         if (addressSpec == null)
         {

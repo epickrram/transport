@@ -24,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import static com.aitusoftware.transport.factory.AdaptiveIdlerFactory.idleUpTo;
 import static org.junit.Assert.assertTrue;
 
 public final class SingleServiceIntegrationTest
@@ -40,7 +41,7 @@ public final class SingleServiceIntegrationTest
 
         final ServiceFactory serviceFactory =
                 new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()),
-                        new StaticAddressSpace());
+                        new StaticAddressSpace(), idleUpTo(1, TimeUnit.MILLISECONDS));
         final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, null));
         serviceFactory.registerSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, null));
