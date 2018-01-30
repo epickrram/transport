@@ -9,6 +9,7 @@ public interface AddressSpace
 {
     int portOf(final Class<?> topicClass);
     String hostOf(final Class<?> topicClass);
+
     default List<SocketAddress> addressesOf(final Class<?> topicClass)
     {
         return Collections.singletonList(addressOf(topicClass));

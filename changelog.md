@@ -4,6 +4,10 @@
 
 - Handle multiple connections between services
 - Handle message buffering
+- Subscribing to multiple publishers per topic
+- Publishing to multiple subscribers per topic
+- Configuration of topic addresses by properties
+- Configuration of idlers by properties
 
 ### Bugfixes
 
