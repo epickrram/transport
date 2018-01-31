@@ -17,13 +17,13 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
-public class PropertiesBackedIdlerFactoryTest
+public class ConfiguredIdlerFactoryTest
 {
     private static final String PREFIX = "transport.publisher.idler.";
     private final Properties properties = new Properties();
     private final Idler fallback = Idlers.staticPause(1, TimeUnit.MILLISECONDS);
-    private final PropertiesBackedIdlerFactory factory =
-            new PropertiesBackedIdlerFactory(PREFIX, properties, fallback);
+    private final ConfiguredIdlerFactory factory =
+            new ConfiguredIdlerFactory(PREFIX, properties::getProperty, fallback);
 
     @Before
     public void setUp()
