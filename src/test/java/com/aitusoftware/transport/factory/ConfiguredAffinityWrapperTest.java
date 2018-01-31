@@ -60,10 +60,10 @@ public class ConfiguredAffinityWrapperTest
 
     private void dummy()
     {
-
+        // this method does nothing
     }
 
-    private void onException(final Throwable t)
+    private void onException(@SuppressWarnings("unused") final Throwable t)
     {
         failed = true;
     }
