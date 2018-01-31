@@ -20,6 +20,7 @@ public final class Affinity
     private final Pointer mask = Pointer.wrap(Runtime.getSystemRuntime(), ByteBuffer.wrap(cpuMask));
     private final LibC libc = LibraryLoader.create(LibC.class).load("c");
 
+    @SuppressWarnings("SpellCheckingInspection")
     public interface LibC
     {
         int sched_setaffinity(@pid_t int pid, @size_t int cpusetsize, Pointer mask);
