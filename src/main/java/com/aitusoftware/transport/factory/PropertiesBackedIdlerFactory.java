@@ -9,13 +9,15 @@ import java.util.function.Function;
 
 public final class PropertiesBackedIdlerFactory implements Function<Class<?>, Idler>
 {
+    private final String prefix;
     private final Properties properties;
     private final Idler fallbackIdler;
 
     public PropertiesBackedIdlerFactory(
-            final Properties properties,
+            final String prefix, final Properties properties,
             final Idler fallbackIdler)
     {
+        this.prefix = prefix;
         this.properties = properties;
         this.fallbackIdler = fallbackIdler;
     }
@@ -29,7 +31,7 @@ public final class PropertiesBackedIdlerFactory implements Function<Class<?>, Id
                     "Not a topic spec: %s", topicClass.getName()));
         }
 
-        final String property = properties.getProperty(topicClass.getName());
+        final String property = properties.getProperty(prefix + topicClass.getName());
         if (property == null)
         {
             return fallbackIdler;

@@ -19,15 +19,16 @@ import static org.junit.Assert.assertThat;
 
 public class PropertiesBackedIdlerFactoryTest
 {
+    private static final String PREFIX = "transport.publisher.idler.";
     private final Properties properties = new Properties();
     private final Idler fallback = Idlers.staticPause(1, TimeUnit.MILLISECONDS);
     private final PropertiesBackedIdlerFactory factory =
-            new PropertiesBackedIdlerFactory(properties, fallback);
+            new PropertiesBackedIdlerFactory(PREFIX, properties, fallback);
 
     @Before
     public void setUp()
     {
-        properties.setProperty(MarketNews.class.getName(), "ADAPTIVE,5,MILLISECONDS");
+        properties.setProperty(PREFIX + MarketNews.class.getName(), "ADAPTIVE,5,MILLISECONDS");
     }
 
     @Test
