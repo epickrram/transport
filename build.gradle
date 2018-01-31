@@ -88,8 +88,15 @@ dependencies {
 
     compile "com.aitusoftware:proxygen:0.3.0"
     compile group: 'org.agrona', name: 'agrona', version: '0.9.7'
+    compile group: 'com.github.jnr', name: 'jnr-ffi', version: '2.1.7'
 
 
     apt "com.aitusoftware:proxygen:0.3.0"
     testApt "com.aitusoftware:proxygen:0.3.0"
+}
+
+task bundleJar(type: Jar) {
+    baseName = project.name + '-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }

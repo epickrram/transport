@@ -3,4 +3,5 @@ module com.aitusoftware.transport {
     requires com.aitusoftware.proxygen;
     requires agrona;
     requires java.management;
+    requires jnr.ffi;
 }
