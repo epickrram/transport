@@ -1,6 +1,7 @@
 package com.aitusoftware.transport.integration;
 
 import com.aitusoftware.transport.Fixtures;
+import com.aitusoftware.transport.factory.Media;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
@@ -22,6 +23,7 @@ public final class ManyToOneServiceIntegrationTest
     private static final int PUBLISHING_SERVICE_COUNT = 10;
     private final TraderBot[] publishers =  new TraderBot[PUBLISHING_SERVICE_COUNT];
     private final CountingTradeNotifications tradeNotifications = new CountingTradeNotifications();
+    private final Media media = Media.TCP;
 
     @Before
     public void setUp() throws Exception
@@ -40,15 +42,15 @@ public final class ManyToOneServiceIntegrationTest
             final Path traderBotPath = Fixtures.tempDirectory();
             final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
                     new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
-            publishers[i] = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
+            publishers[i] = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class, media));
             traderBotServiceFactory.create().start();
         }
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
                 new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
         final OrderGateway orderGateway = new OrderGateway(tradeNotifications);
-        orderGatewayServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));
+        orderGatewayServiceFactory.registerRemoteSubscriber(
+                new SubscriberDefinition<>(OrderNotifications.class, orderGateway, media));
         final Service orderGatewayService = orderGatewayServiceFactory.create();
         orderGatewayService.start();
     }

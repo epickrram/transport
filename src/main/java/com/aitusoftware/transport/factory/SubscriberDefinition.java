@@ -1,19 +1,17 @@
 package com.aitusoftware.transport.factory;
 
-import java.net.SocketAddress;
-
 public final class SubscriberDefinition<T>
 {
     private final Class<T> topic;
     private final T implementation;
-    private final SocketAddress socketAddress;
+    private final Media media;
 
     public SubscriberDefinition(final Class<T> topic, final T implementation,
-                                final SocketAddress socketAddress)
+                                final Media media)
     {
         this.topic = topic;
         this.implementation = implementation;
-        this.socketAddress = socketAddress;
+        this.media = media;
     }
 
     Class<T> getTopic()
@@ -26,8 +24,8 @@ public final class SubscriberDefinition<T>
         return implementation;
     }
 
-    SocketAddress getSocketAddress()
+    Media getMedia()
     {
-        return socketAddress;
+        return media;
     }
 }

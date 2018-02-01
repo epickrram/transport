@@ -15,6 +15,7 @@ import com.aitusoftware.transport.net.ServerSocketFactory;
 import com.aitusoftware.transport.net.SingleChannelTopicMessageHandler;
 import com.aitusoftware.transport.net.TopicMessageHandler;
 import com.aitusoftware.transport.net.TopicToChannelMapper;
+import com.aitusoftware.transport.reader.CopyingRecordHandler;
 import com.aitusoftware.transport.reader.StreamingReader;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.Idlers;
@@ -27,6 +28,7 @@ import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -60,6 +62,8 @@ public final class ServiceFactory
     private final Function<Class<?>, Idler> publisherIdlerFactory;
     private final ToIntFunction<Class<?>> topicToSubscriberIndexMapper;
     private final SubscriberThreading subscriberThreading;
+    private final Int2ObjectHashMap<Media[]> publisherMedia = new Int2ObjectHashMap<>();
+    private final Collection<Named<StreamingReader>> localIpcReaders = new ArrayList<>();
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
@@ -87,17 +91,26 @@ public final class ServiceFactory
         this(pageCachePath, socketFactory, addressSpace, cls -> 0, publisherIdlerFactory, subscriberThreading);
     }
 
-    public <T> T createPublisher(final Class<T> topicDefinition)
+    public <T> T createPublisher(final Class<T> topicDefinition, final Media... media)
     {
         final T publisher = publisherFactory.getPublisherProxy(topicDefinition);
         publishers.add((AbstractPublisher) publisher);
         topicIdToTopic.put(((AbstractPublisher) publisher).getTopicId(), topicDefinition);
+        publisherMedia.put(((AbstractPublisher) publisher).getTopicId(), media);
+        Arrays.sort(media);
         return publisher;
     }
 
-    public <T> void registerSubscriber(final SubscriberDefinition<T> definition)
+    public <T> void registerRemoteSubscriber(final SubscriberDefinition<T> definition)
     {
         final int topicId = TopicIdCalculator.calculate(definition.getTopic());
+
+        if (topicToSubscriber.containsKey(topicId))
+        {
+            throw new IllegalArgumentException(String.format(
+                    "Cannot have more than one subscriber for %s", definition.getTopic()));
+        }
+
         final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(),
                 definition.getImplementation());
         subscribers.add(subscriber);
@@ -107,6 +120,43 @@ public final class ServiceFactory
                 topicToSubscriberIndexMapper.applyAsInt(definition.getTopic())));
         topicIds.add(topicId);
         topicIdToTopic.put(topicId, definition.getTopic());
+    }
+
+    public <T> void registerLocalSubscriber(
+            final SubscriberDefinition<T> definition, final Path localPublisherPageCachePath)
+    {
+        final int topicId = TopicIdCalculator.calculate(definition.getTopic());
+
+        if (topicToSubscriber.containsKey(topicId))
+        {
+            throw new IllegalArgumentException(String.format(
+                    "Cannot have more than one subscriber for %s", definition.getTopic()));
+        }
+
+        final Subscriber<T> subscriber = subscriberFactory.getSubscriber(definition.getTopic(),
+                definition.getImplementation());
+        subscribers.add(subscriber);
+        topicToSubscriber.put(topicId, subscriber);
+
+        try
+        {
+            final StreamingReader outboundReader =
+                    new StreamingReader(PageCache.create(localPublisherPageCachePath, PAGE_SIZE),
+                    new CopyingRecordHandler(subscriberPageCache),
+                    true,
+                    // TODO configure through SubscriberIdlerFactory
+                    AdaptiveIdlerFactory.idleUpTo(1, TimeUnit.MILLISECONDS).apply(definition.getTopic()));
+            localIpcReaders.add(named("local-subscriber-" +
+                    topicIdToTopic.get(topicId).getSimpleName(), outboundReader));
+            readers.add(outboundReader);
+
+            topicIds.add(topicId);
+            topicIdToTopic.put(topicId, definition.getTopic());
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public Service create()
@@ -123,7 +173,9 @@ public final class ServiceFactory
         readers.add(inboundReader);
         final Server server = new Server(topicIds, socketFactory::acquire, subscriberPageCache,
                 subscriberThreading, topicIdToTopic);
-        return new Service(inboundReader, namedPublishers, server);
+        final Collection<Named<StreamingReader>> namedReaders = new ArrayList<>(namedPublishers);
+        namedReaders.addAll(localIpcReaders);
+        return new Service(inboundReader, namedReaders, server);
     }
 
     public void publishers(final Consumer<AbstractPublisher> consumer)
@@ -146,6 +198,11 @@ public final class ServiceFactory
         final Collection<Named<StreamingReader>> namedPublishers = new ArrayList<>(publishers.size());
         publishers.forEach(publisher -> {
             final int topicId = publisher.getTopicId();
+            if (Arrays.binarySearch(publisherMedia.get(topicId), Media.TCP) < 0)
+            {
+                return;
+            }
+
             final Class<?> topicDefinition = topicIdToTopic.get(topicId);
 
             final List<SocketAddress> receiverAddresses = addressSpace.addressesOf(topicDefinition);
@@ -167,7 +224,7 @@ public final class ServiceFactory
             final StreamingReader outboundReader =
                     new StreamingReader(publisherPageCache, outputChannel,
                             true, publisherIdlerFactory.apply(topicDefinition));
-            namedPublishers.add(named("publisher-" +
+            namedPublishers.add(named("outbound-publisher-" +
                     topicIdToTopic.get(publisher.getTopicId()).getSimpleName(), outboundReader));
             readers.add(outboundReader);
         });

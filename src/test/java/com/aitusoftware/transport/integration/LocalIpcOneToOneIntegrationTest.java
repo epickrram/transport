@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import static com.aitusoftware.transport.Fixtures.testIdler;
 import static org.junit.Assert.assertTrue;
 
-public final class SingleServiceIpcIntegrationTest
+public final class LocalIpcOneToOneIntegrationTest
 {
     private final Media media = Media.TCP;
     private Service service;

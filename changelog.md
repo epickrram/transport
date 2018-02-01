@@ -1,3 +1,10 @@
+## [0.4.0] TBD
+
+### Added
+
+- Local subscriber via IPC
+
+
 ## [0.3.0] 2018-02-01
 
 ### Added

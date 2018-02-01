@@ -2,6 +2,7 @@ package com.aitusoftware.transport.integration;
 
 import com.aitusoftware.transport.Fixtures;
 import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.factory.Media;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
@@ -28,6 +29,7 @@ import static org.junit.Assert.assertTrue;
 public final class SubscriberThreadingIntegrationTest
 {
     private final SubscriberThreading subscriberThreading;
+    private final Media media = Media.TCP;
     private Service traderBotService;
     private MarketData marketDataPublisher;
     private Service orderGatewayService;
@@ -58,20 +60,20 @@ public final class SubscriberThreadingIntegrationTest
 
         final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
                 new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler(), subscriberThreading);
-        traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class));
-        traderBotServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(MarketData.class, traderBot, null));
-        traderBotServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(MarketNews.class, traderBot, null));
-        traderBotServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(TradeNotifications.class, traderBot, null));
+        traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class, media));
+        traderBotServiceFactory.registerRemoteSubscriber(
+                new SubscriberDefinition<>(MarketData.class, traderBot, media));
+        traderBotServiceFactory.registerRemoteSubscriber(
+                new SubscriberDefinition<>(MarketNews.class, traderBot, media));
+        traderBotServiceFactory.registerRemoteSubscriber(
+                new SubscriberDefinition<>(TradeNotifications.class, traderBot, media));
         this.traderBotService = traderBotServiceFactory.create();
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
                 new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdler(), subscriberThreading);
-        final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class));
-        orderGatewayServiceFactory.registerSubscriber(
-                new SubscriberDefinition<>(OrderNotifications.class, orderGateway, null));
+        final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class, media));
+        orderGatewayServiceFactory.registerRemoteSubscriber(
+                new SubscriberDefinition<>(OrderNotifications.class, orderGateway, media));
         this.orderGatewayService = orderGatewayServiceFactory.create();
 
         // TODO publish MarketData over TCP

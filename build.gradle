@@ -25,6 +25,8 @@ apply plugin: 'idea'
 apply plugin: 'checkstyle'
 apply plugin: 'net.ltgt.apt'
 apply plugin: 'net.ltgt.apt-idea'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 sourceCompatibility = 1.9
 targetCompatibility = 1.9
@@ -38,7 +40,7 @@ checkstyle {
 }
 
 group = 'com.aitusoftware'
-version = '0.3.0'
+version = '0.4.0'
 
 ext {
     if (!project.hasProperty('sonatypeUrl')) sonatypeUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
@@ -108,6 +110,16 @@ task bundleJar(type: Jar) {
     baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
 }
 
 artifacts {

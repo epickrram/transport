@@ -1,6 +1,7 @@
 package com.aitusoftware.transport.integration;
 
 import com.aitusoftware.transport.Fixtures;
+import com.aitusoftware.transport.factory.Media;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
@@ -30,6 +31,7 @@ public final class OneToManyServiceIntegrationTest
 {
     private static final int RECEIVING_SERVICE_COUNT = 3;
     private static final int MESSAGE_COUNT = 40;
+    private final Media media = Media.TCP;
     private final CountingTradeNotifications[] receivers =  new CountingTradeNotifications[RECEIVING_SERVICE_COUNT];
     private final CountDownLatch latch = new CountDownLatch(MESSAGE_COUNT * RECEIVING_SERVICE_COUNT);
     private OrderNotifications publisher;
@@ -48,14 +50,14 @@ public final class OneToManyServiceIntegrationTest
             final ServiceFactory gatewayServiceFactory = new ServiceFactory(orderGatewayPath,
                     new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
             receivers[i] = new CountingTradeNotifications(latch);
-            gatewayServiceFactory.registerSubscriber(
-                    new SubscriberDefinition<>(OrderNotifications.class, new OrderGateway(receivers[i]), null));
+            gatewayServiceFactory.registerRemoteSubscriber(
+                    new SubscriberDefinition<>(OrderNotifications.class, new OrderGateway(receivers[i]), media));
             gatewayServiceFactory.create().start();
         }
 
         final ServiceFactory publishingServiceFactory = new ServiceFactory(publishingServicePath,
                 new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
-        publisher = publishingServiceFactory.createPublisher(OrderNotifications.class);
+        publisher = publishingServiceFactory.createPublisher(OrderNotifications.class, media);
         final Service publisherService = publishingServiceFactory.create();
         publisherService.start();
     }

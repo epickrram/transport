@@ -15,23 +15,24 @@ import static java.util.concurrent.Executors.newCachedThreadPool;
 public final class Service
 {
     private final StreamingReader inboundReader;
-    private final Collection<Named<StreamingReader>> outboundReaders;
+    private final Collection<Named<StreamingReader>> readers;
     private final Server server;
     private final ExecutorService executor =
             newCachedThreadPool(daemonFactory());
 
-    Service(final StreamingReader inboundReader, final Collection<Named<StreamingReader>> outboundReaders,
+    Service(final StreamingReader inboundReader,
+            final Collection<Named<StreamingReader>> readers,
             final Server server)
     {
         this.inboundReader = inboundReader;
-        this.outboundReaders = outboundReaders;
+        this.readers = readers;
         this.server = server;
     }
 
     public void start()
     {
-        outboundReaders.forEach(reader -> {
-            executor.submit(loggingRunnable(namedThread("outbound-message-processor-" + reader.name(),
+        readers.forEach(reader -> {
+            executor.submit(loggingRunnable(namedThread(reader.name(),
                     reader.value()::process)));
         });
         executor.submit(loggingRunnable(namedThread("inbound-message-dispatcher", inboundReader::process)));
