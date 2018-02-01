@@ -40,6 +40,15 @@ checkstyle {
 group = 'com.aitusoftware'
 version = '0.3.0'
 
+ext {
+    if (!project.hasProperty('sonatypeUrl')) sonatypeUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2'
+    if (!project.hasProperty('sonatypeUsername')) sonatypeUsername = ''
+    if (!project.hasProperty('sonatypePassword')) sonatypePassword = ''
+
+}
+ext.moduleName = 'com.aitusoftware.transport'
+
+
 idea {
     project {
         configureAnnotationProcessing = true
@@ -99,4 +108,69 @@ task bundleJar(type: Jar) {
     baseName = project.name + '-all'
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
+}
+
+artifacts {
+    archives sourcesJar, javadocJar
+}
+
+ext {
+
+    if (!project.hasProperty('ossrhUsername')) {
+        ossrhUsername = ''
+    }
+
+    if (!project.hasProperty('ossrhPassword')) {
+        ossrhPassword = ''
+    }
+}
+
+def projectPom = {
+    name = 'transport'
+    packaging = 'pom'
+    description = 'Transport messaging framework'
+    url = 'https://github.com/aitusoftware/transport.git'
+
+    scm {
+        connection = 'scm:git:https://github.com/aitusoftware/transport.git'
+        developerConnection = 'scm:git:https://github.com/aitusoftware/transport.git'
+        url = 'https://github.com/aitusoftware/transport.git'
+    }
+
+    licenses {
+        license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+        }
+    }
+
+    developers {
+        developer {
+            id = 'epickrram'
+            name = 'Mark Price'
+            email = 'mark@aitusoftware.com'
+            url = 'https://github.com/aitusoftware'
+        }
+    }
+}
+
+install {
+    repositories.mavenInstaller.pom.project(projectPom)
+}
+
+signing {
+    required { gradle.taskGraph.hasTask('uploadArchives') }
+    sign configurations.archives
+}
+
+uploadArchives {
+    repositories.mavenDeployer {
+        beforeDeployment { deployment -> signing.signPom(deployment) }
+
+        repository(url: sonatypeUrl) {
+            authentication(userName: sonatypeUsername, password: sonatypePassword)
+        }
+
+        pom.project(projectPom)
+    }
 }
