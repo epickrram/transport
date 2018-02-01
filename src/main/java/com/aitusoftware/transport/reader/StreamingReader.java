@@ -6,6 +6,7 @@ import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.Record;
 import com.aitusoftware.transport.buffer.Slice;
 import com.aitusoftware.transport.threads.Idler;
+import com.aitusoftware.transport.threads.SingleThreaded;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -32,6 +33,7 @@ public final class StreamingReader
         this.idler = idler;
     }
 
+    @SingleThreaded
     public void process()
     {
         while (!Thread.currentThread().isInterrupted())
@@ -53,7 +55,7 @@ public final class StreamingReader
         }
     }
 
-    public boolean processRecord()
+    private boolean processRecord()
     {
         if (page == null)
         {

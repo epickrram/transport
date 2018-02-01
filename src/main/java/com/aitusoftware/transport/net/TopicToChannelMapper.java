@@ -1,11 +1,13 @@
 package com.aitusoftware.transport.net;
 
+import com.aitusoftware.transport.threads.SingleThreaded;
 import org.agrona.collections.Int2ObjectHashMap;
 
 import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.SocketChannel;
 import java.util.function.IntFunction;
 
+@SingleThreaded
 public final class TopicToChannelMapper
 {
     private final IntFunction<SocketChannel> connector;

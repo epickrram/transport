@@ -1,6 +1,7 @@
 package com.aitusoftware.transport.messaging.proxy;
 
 import com.aitusoftware.transport.messaging.TopicIdCalculator;
+import com.aitusoftware.transport.threads.SingleThreaded;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
@@ -20,6 +21,7 @@ public abstract class AbstractSubscriber<T> implements Subscriber<T>
         topicId = TopicIdCalculator.calculate(implementation.getClass());
     }
 
+    @SingleThreaded
     @Override
     public void onRecord(final ByteBuffer data, final int pageNumber, final int position)
     {

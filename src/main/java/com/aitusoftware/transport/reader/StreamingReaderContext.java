@@ -1,5 +1,8 @@
 package com.aitusoftware.transport.reader;
 
+import com.aitusoftware.transport.threads.SingleThreaded;
+
+@SingleThreaded
 public final class StreamingReaderContext
 {
     private static final ThreadLocal<StreamingReaderContext> THREAD_LOCAL =

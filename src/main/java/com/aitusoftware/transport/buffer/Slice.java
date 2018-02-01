@@ -1,7 +1,10 @@
 package com.aitusoftware.transport.buffer;
 
+import com.aitusoftware.transport.threads.SingleThreaded;
+
 import java.nio.ByteBuffer;
 
+@SingleThreaded
 public final class Slice
 {
     private ByteBuffer buffer;

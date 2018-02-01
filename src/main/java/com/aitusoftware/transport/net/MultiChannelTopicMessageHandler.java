@@ -1,9 +1,12 @@
 package com.aitusoftware.transport.net;
 
+import com.aitusoftware.transport.threads.SingleThreaded;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.GatheringByteChannel;
 
+@SingleThreaded
 public final class MultiChannelTopicMessageHandler implements TopicMessageHandler
 {
     private final ByteBuffer[] srcs = new ByteBuffer[2];

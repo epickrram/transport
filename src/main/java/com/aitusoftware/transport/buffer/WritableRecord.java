@@ -1,7 +1,10 @@
 package com.aitusoftware.transport.buffer;
 
+import com.aitusoftware.transport.threads.SingleThreaded;
+
 import java.nio.ByteBuffer;
 
+@SingleThreaded
 public final class WritableRecord
 {
     private ByteBuffer buffer;

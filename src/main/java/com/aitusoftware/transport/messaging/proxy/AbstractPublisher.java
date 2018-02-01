@@ -3,6 +3,7 @@ package com.aitusoftware.transport.messaging.proxy;
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.WritableRecord;
 import com.aitusoftware.transport.messaging.TopicIdCalculator;
+import com.aitusoftware.transport.threads.SingleThreaded;
 
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -19,6 +20,7 @@ public abstract class AbstractPublisher
         this.topicId = TopicIdCalculator.calculate(getClass());
     }
 
+    @SingleThreaded
     protected WritableRecord acquireRecord(final int recordLength, final byte methodId)
     {
         messageCount.incrementAndGet();
