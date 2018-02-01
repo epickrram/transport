@@ -23,7 +23,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.aitusoftware.transport.Fixtures.testIdler;
+import static com.aitusoftware.transport.Fixtures.testIdlerFactory;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -48,7 +48,7 @@ public final class OneToManyServiceIntegrationTest
         {
             final Path orderGatewayPath = Fixtures.tempDirectory();
             final ServiceFactory gatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
+                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
             receivers[i] = new CountingTradeNotifications(latch);
             gatewayServiceFactory.registerRemoteSubscriber(
                     new SubscriberDefinition<>(OrderNotifications.class, new OrderGateway(receivers[i]), media));
@@ -56,7 +56,7 @@ public final class OneToManyServiceIntegrationTest
         }
 
         final ServiceFactory publishingServiceFactory = new ServiceFactory(publishingServicePath,
-                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
+                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
         publisher = publishingServiceFactory.createPublisher(OrderNotifications.class, media);
         final Service publisherService = publishingServiceFactory.create();
         publisherService.start();

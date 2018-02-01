@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.aitusoftware.transport.Fixtures.testIdler;
+import static com.aitusoftware.transport.Fixtures.testIdlerFactory;
 
 public final class ManyToOneServiceIntegrationTest
 {
@@ -41,13 +41,13 @@ public final class ManyToOneServiceIntegrationTest
         {
             final Path traderBotPath = Fixtures.tempDirectory();
             final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                    new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
+                    new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
             publishers[i] = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class, media));
             traderBotServiceFactory.create().start();
         }
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler(), SubscriberThreading.SINGLE_THREADED);
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
         final OrderGateway orderGateway = new OrderGateway(tradeNotifications);
         orderGatewayServiceFactory.registerRemoteSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, media));

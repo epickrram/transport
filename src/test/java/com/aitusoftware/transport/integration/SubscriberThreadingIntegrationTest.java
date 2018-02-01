@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.aitusoftware.transport.Fixtures.testIdler;
+import static com.aitusoftware.transport.Fixtures.testIdlerFactory;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
@@ -59,7 +59,7 @@ public final class SubscriberThreadingIntegrationTest
                 orderGatewayListenAddr.socket().getLocalPort());
 
         final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdler(), subscriberThreading);
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdlerFactory(), subscriberThreading);
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class, media));
         traderBotServiceFactory.registerRemoteSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, media));
@@ -70,7 +70,7 @@ public final class SubscriberThreadingIntegrationTest
         this.traderBotService = traderBotServiceFactory.create();
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdler(), subscriberThreading);
+                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdlerFactory(), subscriberThreading);
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class, media));
         orderGatewayServiceFactory.registerRemoteSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, media));

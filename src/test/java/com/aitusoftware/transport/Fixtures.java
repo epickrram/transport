@@ -36,9 +36,14 @@ public final class Fixtures
         }));
     }
 
-    public static Function<Class<?>, Idler> testIdler()
+    public static Function<Class<?>, Idler> testIdlerFactory()
     {
         return cls -> Idlers.staticPause(1, TimeUnit.MILLISECONDS);
+    }
+
+    public static Idler testIdler()
+    {
+        return Idlers.staticPause(1, TimeUnit.MILLISECONDS);
     }
 
     public static Path tempDirectory()
