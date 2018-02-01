@@ -1,4 +1,4 @@
-## [0.3.0] TBC
+## [0.3.0] 2018-02-01
 
 ### Added
 
@@ -8,6 +8,7 @@
 - Publishing to multiple subscribers per topic
 - Configuration of topic addresses by properties
 - Configuration of idlers by properties
+- Configuration of thread-affinity by properties
 
 ### Bugfixes
 
