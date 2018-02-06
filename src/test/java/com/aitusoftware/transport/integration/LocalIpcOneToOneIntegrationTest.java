@@ -103,13 +103,13 @@ public final class LocalIpcOneToOneIntegrationTest
         @Override
         public void onBid(final CharSequence symbol, final long quantity, final double price, final int sourceId)
         {
-
+            // no-op
         }
 
         @Override
         public void onTrade(final CharSequence symbol, final boolean isBuy, final long quantity, final double price, final int sourceId)
         {
-
+            // no-op
         }
     }
 }
