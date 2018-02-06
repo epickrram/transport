@@ -32,16 +32,18 @@ public final class Service
     private final StreamingReader inboundReader;
     private final Collection<Named<StreamingReader>> readers;
     private final Server server;
+    private final boolean hasRemoteSubscribers;
     private final ExecutorService executor =
             newCachedThreadPool(daemonFactory());
 
     Service(final StreamingReader inboundReader,
             final Collection<Named<StreamingReader>> readers,
-            final Server server)
+            final Server server, final boolean hasRemoteSubscribers)
     {
         this.inboundReader = inboundReader;
         this.readers = readers;
         this.server = server;
+        this.hasRemoteSubscribers = hasRemoteSubscribers;
     }
 
     public void start()
@@ -51,9 +53,11 @@ public final class Service
                     reader.value()::process)));
         });
         executor.submit(loggingRunnable(namedThread("inbound-message-dispatcher", inboundReader::process)));
-        server.start(executor);
-
-        server.waitForStartup(5, TimeUnit.SECONDS);
+        if (hasRemoteSubscribers)
+        {
+            server.start(executor);
+            server.waitForStartup(5, TimeUnit.SECONDS);
+        }
     }
 
     public boolean stop(final long timeout, final TimeUnit timeUnit)

@@ -80,6 +80,7 @@ public final class ServiceFactory
     private final SubscriberThreading subscriberThreading;
     private final Int2ObjectHashMap<Media[]> publisherMedia = new Int2ObjectHashMap<>();
     private final Collection<Named<StreamingReader>> localIpcReaders = new ArrayList<>();
+    private boolean hasRemoteSubscribers = false;
 
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
@@ -137,6 +138,7 @@ public final class ServiceFactory
                 topicToSubscriberIndexMapper.applyAsInt(definition.getTopic())));
         topicIds.add(topicId);
         topicIdToTopic.put(topicId, definition.getTopic());
+        hasRemoteSubscribers = true;
     }
 
     public <T> void registerLocalSubscriber(
@@ -192,7 +194,7 @@ public final class ServiceFactory
                 subscriberThreading, topicIdToTopic);
         final Collection<Named<StreamingReader>> namedReaders = new ArrayList<>(namedPublishers);
         namedReaders.addAll(localIpcReaders);
-        return new Service(inboundReader, namedReaders, server);
+        return new Service(inboundReader, namedReaders, server, hasRemoteSubscribers);
     }
 
     public void publishers(final Consumer<AbstractPublisher> consumer)

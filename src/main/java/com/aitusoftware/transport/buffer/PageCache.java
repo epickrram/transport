@@ -140,6 +140,11 @@ public final class PageCache
                     break;
                 }
             }
+            if (Thread.currentThread().isInterrupted())
+            {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Thread was interrupted");
+            }
             return acquireRecordBuffer(recordLength);
         }
         else
