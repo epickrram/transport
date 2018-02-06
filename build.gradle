@@ -17,6 +17,7 @@ buildscript {
     }
     dependencies {
         classpath 'net.ltgt.gradle:gradle-apt-plugin:0.12'
+        classpath 'gradle.plugin.net.minecrell:licenser:0.3'
     }
 }
 
@@ -27,9 +28,11 @@ apply plugin: 'net.ltgt.apt'
 apply plugin: 'net.ltgt.apt-idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
+apply plugin: 'net.minecrell.licenser'
 
 sourceCompatibility = 1.9
 targetCompatibility = 1.9
+defaultTasks 'check', 'licenseFormat'
 
 javadoc {
     exclude('module-info.java')
@@ -37,6 +40,12 @@ javadoc {
 
 checkstyle {
     toolVersion = '6.3'
+}
+
+license {
+    header = project.file('HEADER.txt')
+    newLine = false
+    exclude '**/*.properties'
 }
 
 group = 'com.aitusoftware'
