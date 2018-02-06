@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.SocketAddress;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -87,8 +88,9 @@ public final class ServiceFactory
             final Function<Class<?>, Idler> publisherIdlerFactory,
             final SubscriberThreading subscriberThreading) throws IOException
     {
-        publisherPageCache = PageCache.create(pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH), PAGE_SIZE);
-        subscriberPageCache = PageCache.create(pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH), PAGE_SIZE);
+        createRequiredDirectories(pageCachePath);
+        publisherPageCache = PageCache.create(publisherDirectory(pageCachePath), PAGE_SIZE);
+        subscriberPageCache = PageCache.create(subscriberDirectory(pageCachePath), PAGE_SIZE);
         this.addressSpace = addressSpace;
         this.topicToSubscriberIndexMapper = topicToSubscriberIndexMapper;
         publisherFactory = new PublisherFactory(publisherPageCache);
@@ -162,7 +164,7 @@ public final class ServiceFactory
                     // TODO configure through SubscriberIdlerFactory
                     AdaptiveIdlerFactory.idleUpTo(1, TimeUnit.MILLISECONDS).apply(definition.getTopic()));
             localIpcReaders.add(named("local-subscriber-" +
-                    topicIdToTopic.get(topicId).getSimpleName(), outboundReader));
+                    definition.getTopic().getSimpleName(), outboundReader));
             readers.add(outboundReader);
 
             topicIds.add(topicId);
@@ -285,5 +287,21 @@ public final class ServiceFactory
         {
             throw new UncheckedIOException(e);
         }
+    }
+
+    private static Path subscriberDirectory(final Path pageCachePath)
+    {
+        return pageCachePath.resolve(SUBSCRIBER_PAGE_CACHE_PATH);
+    }
+
+    private static Path publisherDirectory(final Path pageCachePath)
+    {
+        return pageCachePath.resolve(PUBLISHER_PAGE_CACHE_PATH);
+    }
+
+    private static void createRequiredDirectories(final Path pageCachePath) throws IOException
+    {
+        Files.createDirectories(publisherDirectory(pageCachePath));
+        Files.createDirectories(subscriberDirectory(pageCachePath));
     }
 }

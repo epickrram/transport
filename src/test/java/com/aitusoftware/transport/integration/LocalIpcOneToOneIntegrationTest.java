@@ -16,20 +16,12 @@
 package com.aitusoftware.transport.integration;
 
 import com.aitusoftware.transport.Fixtures;
-import com.aitusoftware.transport.buffer.PageCache;
+import com.aitusoftware.transport.StaticAddressSpace;
 import com.aitusoftware.transport.factory.Media;
 import com.aitusoftware.transport.factory.Service;
 import com.aitusoftware.transport.factory.ServiceFactory;
 import com.aitusoftware.transport.factory.SubscriberDefinition;
 import com.aitusoftware.transport.factory.SubscriberThreading;
-import com.aitusoftware.transport.StaticAddressSpace;
-import com.aitusoftware.transport.messaging.TopicDispatcherRecordHandler;
-import com.aitusoftware.transport.messaging.proxy.PublisherFactory;
-import com.aitusoftware.transport.messaging.proxy.Subscriber;
-import com.aitusoftware.transport.messaging.proxy.SubscriberFactory;
-import com.aitusoftware.transport.reader.StreamingReader;
-import com.aitusoftware.transport.threads.Idlers;
-import org.agrona.collections.Int2ObjectHashMap;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,8 +29,6 @@ import org.junit.Test;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static com.aitusoftware.transport.Fixtures.testIdlerFactory;
@@ -46,44 +36,42 @@ import static org.junit.Assert.assertTrue;
 
 public final class LocalIpcOneToOneIntegrationTest
 {
+    private static final int MESSAGE_COUNT = 20;
     private final Media media = Media.TCP;
-    private Service service;
+    private Service receiverService;
     private MarketData marketDataPublisher;
-    private ExecutorService executor;
     private CountDownLatch latch;
 
     @Before
     public void setUp() throws Exception
     {
-        final Path path = Fixtures.tempDirectory();
+        final Path receiverPath = Fixtures.tempDirectory();
+        final Path senderPath = Fixtures.tempDirectory();
 
-        final ServiceFactory serviceFactory =
-                new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()),
+        final ServiceFactory receiverServiceFactory =
+                new ServiceFactory(receiverPath, new FixedServerSocketFactory(ServerSocketChannel.open()),
                         new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
-        final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class, media));
-        serviceFactory.registerRemoteSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, media));
-        serviceFactory.registerRemoteSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, media));
-        serviceFactory.registerRemoteSubscriber(new SubscriberDefinition<>(TradeNotifications.class, traderBot, media));
-        this.service = serviceFactory.create();
-        final PageCache inputPageCache = PageCache.create(path.resolve(ServiceFactory.SUBSCRIBER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
-        marketDataPublisher = new PublisherFactory(inputPageCache).getPublisherProxy(MarketData.class);
-        final PageCache outputPageCache = PageCache.create(path.resolve(ServiceFactory.PUBLISHER_PAGE_CACHE_PATH), ServiceFactory.PAGE_SIZE);
-        this.latch = new CountDownLatch(1);
 
-        final Subscriber<OrderNotifications> subscriber = new SubscriberFactory().getSubscriber(OrderNotifications.class, new EventReceiver());
+        final ServiceFactory senderServiceFactory =
+                new ServiceFactory(senderPath, new FixedServerSocketFactory(ServerSocketChannel.open()),
+                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
 
-        final Int2ObjectHashMap<Subscriber> subscriberMap = new Int2ObjectHashMap<>();
-        subscriberMap.put(subscriber.getTopicId(), subscriber);
-        final StreamingReader streamingReader = new StreamingReader(outputPageCache, new TopicDispatcherRecordHandler(subscriberMap), true, Idlers.staticPause(1, TimeUnit.MILLISECONDS));
-        executor = Executors.newSingleThreadExecutor();
-        executor.execute(streamingReader::process);
-        this.service.start();
+        this.latch = new CountDownLatch(MESSAGE_COUNT);
+        final MarketDataReceiver marketDataReceiver = new MarketDataReceiver(latch);
+        receiverServiceFactory.registerLocalSubscriber(new SubscriberDefinition<>(MarketData.class,
+                        marketDataReceiver, media),
+                senderPath.resolve(ServiceFactory.PUBLISHER_PAGE_CACHE_PATH));
+        this.receiverService = receiverServiceFactory.create();
+
+
+        marketDataPublisher = senderServiceFactory.createPublisher(MarketData.class);
+        this.receiverService.start();
     }
 
     @Test
     public void shouldHandleMessages() throws Exception
     {
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < MESSAGE_COUNT; i++)
         {
             marketDataPublisher.onAsk("USD/EUR", i, 17 * i, 37);
         }
@@ -94,29 +82,34 @@ public final class LocalIpcOneToOneIntegrationTest
     @After
     public void tearDown() throws Exception
     {
-        assertTrue(service.stop(5, TimeUnit.SECONDS));
-        executor.shutdownNow();
+        assertTrue(receiverService.stop(5, TimeUnit.SECONDS));
     }
 
-    private class EventReceiver implements OrderNotifications
+    private static final class MarketDataReceiver implements MarketData
     {
+        private final CountDownLatch latch;
+
+        private MarketDataReceiver(final CountDownLatch latch)
+        {
+            this.latch = latch;
+        }
+
         @Override
-        public void limitOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final double price, final int ecnId)
+        public void onAsk(final CharSequence symbol, final long quantity, final double price, final int sourceId)
         {
             latch.countDown();
         }
 
         @Override
-        public void marketOrder(final CharSequence symbol, final CharSequence orderId, final boolean isBid, final long quantity, final int ecnId)
+        public void onBid(final CharSequence symbol, final long quantity, final double price, final int sourceId)
         {
-            latch.countDown();
+
         }
 
         @Override
-        public void cancelOrder(final CharSequence orderId, final int ecnId)
+        public void onTrade(final CharSequence symbol, final boolean isBuy, final long quantity, final double price, final int sourceId)
         {
-            latch.countDown();
+
         }
     }
-
 }
