@@ -1,6 +1,7 @@
 package com.aitusoftware.transport.ffi;
 
 import com.aitusoftware.transport.threads.SingleThreaded;
+import jnr.ffi.LastError;
 import jnr.ffi.LibraryLoader;
 import jnr.ffi.Pointer;
 import jnr.ffi.Runtime;
@@ -27,6 +28,15 @@ public final class Affinity
         int sched_getaffinity(@pid_t int pid, @size_t int cpusetsize, Pointer mask);
     }
 
+    public void setCurrentThreadCpuAffinityAndValidate(final int cpu)
+    {
+        setCurrentThreadCpuAffinity(cpu);
+        if (cpu != getCurrentThreadCpuAffinity())
+        {
+            throw new IllegalStateException("Unable to set thread affinity");
+        }
+    }
+
     public void setCurrentThreadCpuAffinity(final int cpu)
     {
         Arrays.fill(cpuMask, (byte) 0);
@@ -39,7 +49,8 @@ public final class Affinity
         if (returnValue != 0)
         {
             throw new IllegalStateException(String.format(
-                    "Failed to set affinity, response code: %d", returnValue));
+                    "Failed to set affinity, response code: %d, error code: %d",
+                    returnValue, LastError.getLastError(Runtime.getSystemRuntime())));
         }
     }
 
@@ -51,7 +62,8 @@ public final class Affinity
         if (returnValue != 0)
         {
             throw new IllegalStateException(String.format(
-                    "Failed to get affinity, response code: %d", returnValue));
+                    "Failed to get affinity, response code: %d, error code: %d",
+                    returnValue, LastError.getLastError(Runtime.getSystemRuntime())));
         }
 
         int cpuAffinity = -1;
