@@ -59,7 +59,8 @@ public final class SingleServiceIpcIntegrationTest
 
         final ServiceFactory serviceFactory =
                 new ServiceFactory(path, new FixedServerSocketFactory(ServerSocketChannel.open()),
-                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED,
+                        Fixtures.testingIdlerConfig());
         final TraderBot traderBot = new TraderBot(serviceFactory.createPublisher(OrderNotifications.class, media));
         serviceFactory.registerRemoteSubscriber(new SubscriberDefinition<>(MarketData.class, traderBot, media));
         serviceFactory.registerRemoteSubscriber(new SubscriberDefinition<>(MarketNews.class, traderBot, media));

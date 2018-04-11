@@ -56,13 +56,15 @@ public final class ManyToOneServiceIntegrationTest
         {
             final Path traderBotPath = Fixtures.tempDirectory();
             final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                    new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                    new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdlerFactory(),
+                    SubscriberThreading.SINGLE_THREADED, Fixtures.testingIdlerConfig());
             publishers[i] = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class, media));
             traderBotServiceFactory.create().start();
         }
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdlerFactory(),
+                SubscriberThreading.SINGLE_THREADED, Fixtures.testingIdlerConfig());
         final OrderGateway orderGateway = new OrderGateway(tradeNotifications);
         orderGatewayServiceFactory.registerRemoteSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, media));

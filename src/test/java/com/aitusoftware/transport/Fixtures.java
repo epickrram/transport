@@ -17,6 +17,7 @@ package com.aitusoftware.transport;
 
 import com.aitusoftware.transport.buffer.PageCache;
 import com.aitusoftware.transport.buffer.WritableRecord;
+import com.aitusoftware.transport.factory.IdlerConfig;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.Idlers;
 
@@ -36,6 +37,7 @@ public final class Fixtures
 {
     private static final Collection<Path> PATHS_TO_DELETE =
             new ConcurrentLinkedQueue<>();
+    private static final Idler TEST_IDLER = Idlers.staticPause(1, TimeUnit.MILLISECONDS);
 
     private Fixtures()
     {
@@ -53,12 +55,36 @@ public final class Fixtures
 
     public static Function<Class<?>, Idler> testIdlerFactory()
     {
-        return cls -> Idlers.staticPause(1, TimeUnit.MILLISECONDS);
+        return cls -> TEST_IDLER;
     }
 
     public static Idler testIdler()
     {
-        return Idlers.staticPause(1, TimeUnit.MILLISECONDS);
+        return TEST_IDLER;
+    }
+
+    public static IdlerConfig testingIdlerConfig()
+    {
+        return new IdlerConfig()
+        {
+            @Override
+            public Idler getInvokerIdler()
+            {
+                return TEST_IDLER;
+            }
+
+            @Override
+            public Idler getPublisherIdler(final Class<?> topicDefinition)
+            {
+                return TEST_IDLER;
+            }
+
+            @Override
+            public Idler getSubscriberIdler(final Class<?> topicDefinition)
+            {
+                return TEST_IDLER;
+            }
+        };
     }
 
     public static Path tempDirectory()

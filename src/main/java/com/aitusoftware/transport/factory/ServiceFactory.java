@@ -80,6 +80,7 @@ public final class ServiceFactory
     private final SubscriberThreading subscriberThreading;
     private final Int2ObjectHashMap<Media[]> publisherMedia = new Int2ObjectHashMap<>();
     private final Collection<Named<StreamingReader>> localIpcReaders = new ArrayList<>();
+    private final IdlerConfig idlerConfig;
     private boolean hasRemoteSubscribers = false;
 
     public ServiceFactory(
@@ -87,9 +88,11 @@ public final class ServiceFactory
             final AddressSpace addressSpace,
             final ToIntFunction<Class<?>> topicToSubscriberIndexMapper,
             final Function<Class<?>, Idler> publisherIdlerFactory,
-            final SubscriberThreading subscriberThreading) throws IOException
+            final SubscriberThreading subscriberThreading,
+            final IdlerConfig idlerConfig) throws IOException
     {
         createRequiredDirectories(pageCachePath);
+        this.idlerConfig = idlerConfig;
         publisherPageCache = PageCache.create(publisherDirectory(pageCachePath), PAGE_SIZE);
         subscriberPageCache = PageCache.create(subscriberDirectory(pageCachePath), PAGE_SIZE);
         this.addressSpace = addressSpace;
@@ -104,9 +107,10 @@ public final class ServiceFactory
     public ServiceFactory(
             final Path pageCachePath, final ServerSocketFactory socketFactory,
             final AddressSpace addressSpace, final Function<Class<?>, Idler> publisherIdlerFactory,
-            final SubscriberThreading subscriberThreading) throws IOException
+            final SubscriberThreading subscriberThreading,
+            final IdlerConfig idlerConfig) throws IOException
     {
-        this(pageCachePath, socketFactory, addressSpace, cls -> 0, publisherIdlerFactory, subscriberThreading);
+        this(pageCachePath, socketFactory, addressSpace, cls -> 0, publisherIdlerFactory, subscriberThreading, idlerConfig);
     }
 
     public <T> T createPublisher(final Class<T> topicDefinition, final Media... media)

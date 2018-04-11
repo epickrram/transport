@@ -74,7 +74,8 @@ public final class SubscriberThreadingIntegrationTest
                 orderGatewayListenAddr.socket().getLocalPort());
 
         final ServiceFactory traderBotServiceFactory = new ServiceFactory(traderBotPath,
-                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdlerFactory(), subscriberThreading);
+                new FixedServerSocketFactory(traderBotListenAddr), testAddressSpace, testIdlerFactory(),
+                subscriberThreading, Fixtures.testingIdlerConfig());
         traderBot = new TraderBot(traderBotServiceFactory.createPublisher(OrderNotifications.class, media));
         traderBotServiceFactory.registerRemoteSubscriber(
                 new SubscriberDefinition<>(MarketData.class, traderBot, media));
@@ -85,7 +86,8 @@ public final class SubscriberThreadingIntegrationTest
         this.traderBotService = traderBotServiceFactory.create();
 
         final ServiceFactory orderGatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdlerFactory(), subscriberThreading);
+                new FixedServerSocketFactory(orderGatewayListenAddr), testAddressSpace, testIdlerFactory(),
+                subscriberThreading, Fixtures.testingIdlerConfig());
         final OrderGateway orderGateway = new OrderGateway(orderGatewayServiceFactory.createPublisher(TradeNotifications.class, media));
         orderGatewayServiceFactory.registerRemoteSubscriber(
                 new SubscriberDefinition<>(OrderNotifications.class, orderGateway, media));

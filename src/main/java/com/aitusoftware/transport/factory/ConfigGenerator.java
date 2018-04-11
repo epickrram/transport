@@ -30,6 +30,9 @@ import java.util.List;
 
 public final class ConfigGenerator
 {
+
+    private static final String DEFAULT_IDLER = "STATIC,1,MILLISECONDS";
+
     public void generateConfigurationProperties(
             final Collection<Class<?>> topicDefinitions, final Path destination)
     {
@@ -44,7 +47,7 @@ public final class ConfigGenerator
             {
                 writer.append("transport.publisher.idler.");
                 writer.append(topic.getName()).append("=").
-                        append("STATIC,1,MILLISECONDS");
+                        append(DEFAULT_IDLER);
                 writer.newLine();
             }
 
@@ -52,7 +55,7 @@ public final class ConfigGenerator
             {
                 writer.append("transport.subscriber.idler.");
                 writer.append(topic.getName()).append("=").
-                        append("STATIC,1,MILLISECONDS");
+                        append(DEFAULT_IDLER);
                 writer.newLine();
             }
 
@@ -71,6 +74,8 @@ public final class ConfigGenerator
                         append("-1");
                 writer.newLine();
             }
+            writer.append(PropertiesIdlerConfig.INVOKER_IDLER_PROPERTY).append('=').append(DEFAULT_IDLER);
+            writer.newLine();
         }
         catch (IOException e)
         {

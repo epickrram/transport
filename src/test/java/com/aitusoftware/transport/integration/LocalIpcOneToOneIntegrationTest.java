@@ -50,11 +50,13 @@ public final class LocalIpcOneToOneIntegrationTest
 
         final ServiceFactory receiverServiceFactory =
                 new ServiceFactory(receiverPath, new FixedServerSocketFactory(ServerSocketChannel.open()),
-                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED,
+                        Fixtures.testingIdlerConfig());
 
         final ServiceFactory senderServiceFactory =
                 new ServiceFactory(senderPath, new FixedServerSocketFactory(ServerSocketChannel.open()),
-                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                        new StaticAddressSpace(), testIdlerFactory(), SubscriberThreading.SINGLE_THREADED,
+                        Fixtures.testingIdlerConfig());
 
         this.latch = new CountDownLatch(MESSAGE_COUNT);
         final MarketDataReceiver marketDataReceiver = new MarketDataReceiver(latch);

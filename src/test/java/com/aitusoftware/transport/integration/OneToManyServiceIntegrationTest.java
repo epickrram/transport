@@ -63,7 +63,8 @@ public final class OneToManyServiceIntegrationTest
         {
             final Path orderGatewayPath = Fixtures.tempDirectory();
             final ServiceFactory gatewayServiceFactory = new ServiceFactory(orderGatewayPath,
-                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                    new FixedServerSocketFactory(testAddressSpace.forIndex(i)), testAddressSpace,
+                    testIdlerFactory(), SubscriberThreading.SINGLE_THREADED, Fixtures.testingIdlerConfig());
             receivers[i] = new CountingTradeNotifications(latch);
             gatewayServiceFactory.registerRemoteSubscriber(
                     new SubscriberDefinition<>(OrderNotifications.class, new OrderGateway(receivers[i]), media));
@@ -71,7 +72,8 @@ public final class OneToManyServiceIntegrationTest
         }
 
         final ServiceFactory publishingServiceFactory = new ServiceFactory(publishingServicePath,
-                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdlerFactory(), SubscriberThreading.SINGLE_THREADED);
+                new FixedServerSocketFactory(ServerSocketChannel.open()), testAddressSpace, testIdlerFactory(),
+                SubscriberThreading.SINGLE_THREADED, Fixtures.testingIdlerConfig());
         publisher = publishingServiceFactory.createPublisher(OrderNotifications.class, media);
         final Service publisherService = publishingServiceFactory.create();
         publisherService.start();

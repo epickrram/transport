@@ -19,6 +19,7 @@ import com.aitusoftware.transport.messaging.Topic;
 import com.aitusoftware.transport.threads.Idler;
 import com.aitusoftware.transport.threads.Idlers;
 
+import java.util.Properties;
 import java.util.function.Function;
 
 public final class ConfiguredIdlerFactory implements Function<Class<?>, Idler>
@@ -27,7 +28,7 @@ public final class ConfiguredIdlerFactory implements Function<Class<?>, Idler>
     private final Function<String, String> keyValueMapper;
     private final Idler fallbackIdler;
 
-    public ConfiguredIdlerFactory(
+    ConfiguredIdlerFactory(
             final String prefix, final Function<String, String> keyValueMapper,
             final Idler fallbackIdler)
     {
@@ -51,5 +52,11 @@ public final class ConfiguredIdlerFactory implements Function<Class<?>, Idler>
             return fallbackIdler;
         }
         return Idlers.forString(property);
+    }
+
+    static ConfiguredIdlerFactory fromProperties(
+            final Properties properties, final String prefix, final Idler fallbackIdler)
+    {
+        return new ConfiguredIdlerFactory(prefix, properties::getProperty, fallbackIdler);
     }
 }

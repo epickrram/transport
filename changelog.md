@@ -1,3 +1,10 @@
+## [0.5.0] TBC
+
+### Added
+
+- Support for setting affinity for local subscribers
+- Wiring for Idler configuration
+
 ## [0.4.0] 2018-02-07
 
 ### Added
@@ -14,7 +21,7 @@
 - Subscribing to multiple publishers per topic
 - Publishing to multiple subscribers per topic
 - Configuration of topic addresses by properties
-- Configuration of idlers by properties
+- Configuration of Idlers by properties
 - Configuration of thread-affinity by properties
 
 ### Bugfixes
